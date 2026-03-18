@@ -1,0 +1,46 @@
+﻿# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.so
+
+# Virtual environments
+.venv/
+venv/
+env/
+
+# IDE
+.idea/
+.vscode/
+
+# Temporary and logs
+.tmp/
+*.log
+.tmp_web_stdout.log
+.tmp_web_stderr.log
+
+# Local bootstrap/runtime binaries
+tools/bootstrap/uv.exe
+tools/bootstrap/uvw.exe
+tools/bootstrap/uvx.exe
+tools/bootstrap/uv.zip
+tools/bootstrap/*.log
+tools/python/
+
+# Test/cache
+.pytest_cache/
+.mypy_cache/
+coverage.xml
+htmlcov/
+
+# Runtime outputs
+assets/app/system.db
+assets/imports/
+assets/data/records/
+assets/reports/
+assets/weights/
+
+# OS files
+.DS_Store
+Thumbs.db

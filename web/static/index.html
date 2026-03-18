@@ -1,0 +1,362 @@
+﻿<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>民族舞智能评估系统</title>
+  <link rel="stylesheet" href="/static/styles.css?v=20260318h">
+</head>
+<body>
+  <div class="aurora aurora-a"></div>
+  <div class="aurora aurora-b"></div>
+  <div class="aurora aurora-c"></div>
+
+  <main class="app-shell">
+    <aside class="sidebar card fade-up">
+      <div class="brand-block">
+        <div class="brand-mark" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M12 3.5 14.4 9.6 20.5 12l-6.1 2.4L12 20.5l-2.4-6.1L3.5 12l6.1-2.4z"></path><circle cx="18.2" cy="5.8" r="1.3"></circle></svg></div>
+        <div>
+          <div class="eyebrow">民族舞智能评估系统</div>
+          <h1>Dance Console</h1>
+          <p>视频展示走浏览器，实时评分走 Rebocap 骨骼流，离线导入走 NPY 评估链路。</p>
+        </div>
+      </div>
+
+      <div class="nav-group">
+        <div class="nav-title">实时评估</div>
+        <button class="nav-item active" data-panel="dashboard"><span class="nav-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><rect x="4" y="5" width="16" height="14" rx="3"></rect><path d="M9 9v6"></path><path d="M15 8v8"></path></svg></span><span class="nav-label">控制台</span></button>
+        <button class="nav-item" data-panel="score"><span class="nav-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M8 4h8v3a4 4 0 0 1-8 0z"></path><path d="M6 7H4a3 3 0 0 0 3 3"></path><path d="M18 7h2a3 3 0 0 1-3 3"></path><path d="M12 14v3"></path><path d="M9 20h6"></path></svg></span><span class="nav-label">评分看板</span></button>
+        <button class="nav-item" data-panel="feed"><span class="nav-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M13 3 6 13h5l-1 8 8-11h-5l0-7z"></path></svg></span><span class="nav-label">舞台战报</span></button>
+      </div>
+
+      <div class="nav-group">
+        <div class="nav-title">数据中心</div>
+        <button class="nav-item" data-panel="history"><span class="nav-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M4 7h6l2 2h8v8a3 3 0 0 1-3 3H7a3 3 0 0 1-3-3z"></path><path d="M4 7V6a2 2 0 0 1 2-2h4l2 2h4"></path></svg></span><span class="nav-label">历史记录</span></button>
+        <button class="nav-item" data-panel="import"><span class="nav-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M12 4v10"></path><path d="m8 10 4 4 4-4"></path><path d="M5 18h14"></path></svg></span><span class="nav-label">离线导入</span></button>
+        <button class="nav-item" data-panel="model"><span class="nav-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M9 8a3 3 0 0 1 6 0"></path><path d="M7 10a5 5 0 0 1 10 0"></path><path d="M8 11v4"></path><path d="M12 11v6"></path><path d="M16 11v4"></path><path d="M9 19h6"></path></svg></span><span class="nav-label">模型中心</span></button>
+      </div>
+
+      <div class="nav-group">
+        <div class="nav-title">系统管理</div>
+        <button class="nav-item" data-panel="device"><span class="nav-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><rect x="4" y="7" width="16" height="10" rx="3"></rect><path d="M9 7 10.5 5h3L15 7"></path><circle cx="12" cy="12" r="3"></circle></svg></span><span class="nav-label">设备监控</span></button>
+        <button class="nav-item" data-panel="account"><span class="nav-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="3"></circle><path d="M6 19a6 6 0 0 1 12 0"></path></svg></span><span class="nav-label">账号中心</span></button>
+        <button class="nav-item" data-panel="guide"><span class="nav-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8"></circle><path d="m10 14 1-4 4-1-1 4-4 1z"></path></svg></span><span class="nav-label">使用指引</span></button>
+      </div>
+
+      <button id="sidebarToggle" class="sidebar-toggle" aria-label="折叠侧边栏"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m14.5 6-6 6 6 6"></path></svg></button>
+
+      <div class="sidebar-foot">
+        <div class="pill-stack">
+          <div id="modelStatus" class="pill">模型待加载</div>
+          <div id="sessionState" class="pill">待机</div>
+        </div>
+      </div>
+    </aside>
+
+    <section class="workspace">
+      <section class="hero card fade-up fade-delay-1">
+        <div class="hero-copy">
+          <div class="eyebrow">Apple Style Dashboard</div>
+          <h2>民族舞实时评估浏览器工作台</h2>
+          <p>当前版本已经打通实时评估、离线导入、历史管理、模型中心、设备诊断和账号状态。侧边栏按业务分层，主区域只展示当前任务必需的信息。</p>
+        </div>
+        <div class="hero-actions command-bar">
+          <button id="startBtn" class="btn primary"><span class="btn-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M8 6v12l9-6z"></path></svg></span><span class="btn-label">开始评估</span></button>
+          <button id="stopBtn" class="btn secondary"><span class="btn-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><rect x="7" y="7" width="10" height="10" rx="2"></rect></svg></span><span class="btn-label">停止评估</span></button>
+          <button id="refreshVideoBtn" class="btn secondary"><span class="btn-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M20 12a8 8 0 0 1-13.7 5.7"></path><path d="M4 12A8 8 0 0 1 17.7 6.3"></path><path d="M6 17H3v-3"></path><path d="M18 7h3v3"></path></svg></span><span class="btn-label">刷新设备</span></button>
+        </div>
+      </section>
+
+      <section class="toolbar-grid fade-up fade-delay-2">
+        <label class="card field-card">
+          <span class="field-label">舞种</span>
+          <select id="danceType">
+            <option>黑走马 (Kara Jorga)</option>
+            <option>木卡姆 (Muqam)</option>
+          </select>
+        </label>
+        <label class="card field-card">
+          <span class="field-label">视频设备</span>
+          <select id="cameraSelect"></select>
+        </label>
+        <label class="card field-card">
+          <span class="field-label">VMC Host</span>
+          <input id="vmcHost" value="0.0.0.0">
+        </label>
+        <label class="card field-card">
+          <span class="field-label">VMC Port</span>
+          <input id="vmcPort" value="39539">
+        </label>
+        <div class="card field-card metric-card">
+          <span class="field-label">计时</span>
+          <div id="timerValue" class="digital">00:00</div>
+        </div>
+        <div class="card field-card metric-card">
+          <span class="field-label">视频状态</span>
+          <div id="videoStatus" class="pill status-neutral">视频待连接</div>
+        </div>
+      </section>
+
+      <section id="panel-dashboard" class="panel active">
+        <div class="bento-grid">
+          <section class="card video-card fade-up fade-delay-3">
+            <div class="section-head">
+              <div>
+                <div class="section-kicker"><span class="section-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><rect x="4" y="6" width="16" height="12" rx="3"></rect><path d="m10 10 5 2-5 2z"></path></svg></span><div class="section-eyebrow">Live View</div></div>
+                <h3>实时画面</h3>
+                <p>浏览器直接接入 OBS / 云景虚拟摄像头。</p>
+              </div>
+              <div id="rankPill" class="pill">IDLE</div>
+            </div>
+            <div class="video-stage">
+              <video id="video" autoplay playsinline muted></video>
+              <div id="perfectFx" class="perfect hidden">PERFECT!</div>
+              <div id="judgeFx" class="judge hidden">PERFECT</div>
+              <div id="comboFx" class="combo hidden">COMBO x0</div>
+              <div class="video-shadow"></div>
+            </div>
+            <div id="videoHint" class="video-hint">如果没有看到 OBS，请先在 OBS 中点击“启动虚拟摄像头”，然后刷新设备列表。</div>
+          </section>
+
+          <section class="card score-card fade-up fade-delay-4">
+            <div class="section-head">
+              <div>
+                <div class="section-kicker"><span class="section-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M12 4v16"></path><path d="M7 9h10"></path><path d="M9 15h6"></path></svg></span><div class="section-eyebrow">Live Score</div></div>
+                <h3>评分总览</h3>
+              </div>
+            </div>
+            <div id="scoreValue" class="score">0</div>
+            <div class="progress"><div id="scoreBar"></div></div>
+            <div class="metrics">
+              <div class="mini-card"><span class="meta-label"><span class="meta-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M12 4v16"></path><path d="M7 9h10"></path><path d="M9 15h6"></path></svg></span>当前舞种</span><strong id="danceValue">未启动</strong></div>
+              <div class="mini-card"><span class="meta-label"><span class="meta-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M13 3 6 13h5l-1 8 8-11h-5l0-7z"></path></svg></span>最高连击</span><strong id="bestCombo">0</strong></div>
+              <div class="mini-card"><span class="meta-label"><span class="meta-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M5 8h14"></path><path d="M5 12h10"></path><path d="M5 16h8"></path></svg></span>当前反馈</span><strong id="feedbackValue">等待开始</strong></div><div class="mini-card"><span class="meta-label"><span class="meta-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="7"></circle><path d="M12 9v3l2 2"></path></svg></span>实时弱项</span><strong id="weakestJointValue">--</strong></div>
+            </div>
+          </section>
+
+          <section class="card stats-card fade-up fade-delay-5">
+            <div class="section-head">
+              <div>
+                <div class="section-kicker"><span class="section-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M6 16V9"></path><path d="M12 16V5"></path><path d="M18 16v-8"></path></svg></span><div class="section-eyebrow">Judgement Mix</div></div>
+                <h3>命中统计</h3>
+              </div>
+            </div>
+            <div class="stats">
+              <div class="stat-row"><span>PERFECT</span><div class="mini-progress"><div id="stat-perfect"></div></div><em id="count-perfect">0</em></div>
+              <div class="stat-row"><span>GREAT</span><div class="mini-progress"><div id="stat-great"></div></div><em id="count-great">0</em></div>
+              <div class="stat-row"><span>GOOD</span><div class="mini-progress"><div id="stat-good"></div></div><em id="count-good">0</em></div>
+              <div class="stat-row"><span>WARN</span><div class="mini-progress"><div id="stat-warn"></div></div><em id="count-warn">0</em></div>
+            </div>
+          </section>
+
+          <section class="card summary-card fade-up fade-delay-6">
+            <div class="section-head">
+              <div>
+                <div class="section-kicker"><span class="section-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M5 18h14"></path><path d="M7 14h4"></path><path d="M13 10h4"></path><path d="M9 6h6"></path></svg></span><div class="section-eyebrow">Realtime Summary</div></div>
+                <h3>会话概览</h3>
+              </div>
+            </div>
+            <div class="summary-list">
+              <div class="summary-item"><span class="meta-label"><span class="meta-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="3"></circle><path d="M6 19a6 6 0 0 1 12 0"></path></svg></span>当前账号</span><strong id="userValue">游客 / 学生</strong></div>
+              <div class="summary-item"><span class="meta-label"><span class="meta-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M5 18h14"></path><path d="M7 14h4"></path><path d="M13 10h4"></path><path d="M9 6h6"></path></svg></span>VMC 源</span><strong id="vmcValue">0.0.0.0:39539</strong></div>
+              <div class="summary-item"><span class="meta-label"><span class="meta-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><rect x="5" y="6" width="14" height="12" rx="3"></rect><path d="M10 10h4"></path><path d="M10 14h4"></path></svg></span>最新录制</span><strong id="recordValue">尚未生成</strong></div>
+              <div class="summary-item"><span class="meta-label"><span class="meta-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M12 4v10"></path><path d="m8 10 4 4 4-4"></path><path d="M5 18h14"></path></svg></span>最近导入</span><strong id="lastImportValue">尚未导入</strong></div>
+            </div>
+          </section>
+        </div>
+      </section>
+
+      <section id="panel-score" class="panel">
+        <div class="single-panel-grid">
+          <section class="card wide-card">
+            <div class="section-head">
+              <div>
+                <div class="section-kicker"><span class="section-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="7"></circle><path d="M12 9v3l2 2"></path></svg></span><div class="section-eyebrow">Scoring Focus</div></div>
+                <h3>评分看板</h3>
+                <p>突出当前分数、节奏状态和判定分布。</p>
+              </div>
+            </div>
+            <div class="score-focus-layout">
+              <div class="score-focus-main">
+                <div id="scoreFocusValue" class="score huge">0</div>
+                <div class="progress large"><div id="scoreFocusBar"></div></div>
+                <div class="chart-card">
+                  <div class="chart-head"><span class="chart-label"><span class="meta-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M5 16 10 11l3 3 6-7"></path></svg></span>实时分数曲线</span><strong id="chartMeta">最近 24 次采样</strong></div>
+                  <svg id="scoreChart" viewBox="0 0 640 220" preserveAspectRatio="none">
+                    <g id="scoreChartGrid"></g>
+                    <path id="scoreChartArea" d=""></path>
+                    <path id="scoreChartLine" d=""></path>
+                    <circle id="scoreChartPeak" cx="0" cy="0" r="0"></circle>
+                    <text id="scoreChartPeakText" x="0" y="0"></text>
+                  </svg>
+                </div>
+              </div>
+              <div class="score-focus-side">
+                <div class="mini-card"><span>当前判定</span><strong id="scoreFocusRank">IDLE</strong></div>
+                <div class="mini-card"><span>当前反馈</span><strong id="scoreFocusFeedback">等待开始</strong></div>
+                <div class="mini-card"><span>当前连击</span><strong id="scoreFocusCombo">0</strong></div><div class="mini-card"><span>最弱关节</span><strong id="scoreFocusWeakest">--</strong></div>
+              </div>
+            </div>
+          </section>
+        </div>
+      </section>
+
+      <section id="panel-feed" class="panel">
+        <div class="single-panel-grid">
+          <section class="card wide-card">
+            <div class="section-head"><div><div class="section-kicker"><span class="section-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M13 3 6 13h5l-1 8 8-11h-5l0-7z"></path></svg></span><div class="section-eyebrow">Live Feed</div></div><h3>舞台战报</h3><p>新消息固定压在顶部，保留游戏化判定风格。</p></div></div>
+            <div id="feedListWide" class="feed-list tall"></div>
+          </section>
+        </div>
+      </section>
+
+      <section id="panel-history" class="panel">
+        <div class="single-panel-grid">
+          <section class="card wide-card">
+            <div class="section-head"><div><div class="section-kicker"><span class="section-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M4 7h6l2 2h8v8a3 3 0 0 1-3 3H7a3 3 0 0 1-3-3z"></path><path d="M4 7V6a2 2 0 0 1 2-2h4l2 2h4"></path></svg></span><div class="section-eyebrow">Records</div></div><h3>历史记录</h3><p>支持筛选、详情、重评和删除，形成完整闭环。</p></div></div>
+            <div class="action-row filter-row">
+              <label class="input-shell">
+                <span class="input-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M12 4v16"></path><path d="M7 9h10"></path><path d="M9 15h6"></path></svg></span>
+                <select id="historyDanceFilter"><option value="">全部舞种</option><option>黑走马 (Kara Jorga)</option><option>木卡姆 (Muqam)</option></select>
+              </label>
+              <label class="input-shell">
+                <span class="input-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M7 12h10"></path><path d="M9 8h6"></path><path d="M9 16h6"></path></svg></span>
+                <select id="historyGradeFilter"><option value="">全部等级</option><option>S</option><option>A</option><option>B</option><option>C</option></select>
+              </label>
+              <label class="input-shell">
+                <span class="input-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="6"></circle><path d="m16 16 4 4"></path></svg></span>
+                <input id="historyKeyword" placeholder="搜索时间、摘要、舞种关键词">
+              </label>
+              <button id="historyFilterBtn" class="btn secondary"><span class="btn-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M4 7h16"></path><path d="M7 12h10"></path><path d="M10 17h4"></path></svg></span><span class="btn-label">筛选</span></button>
+            </div>
+            <div id="historyListWide" class="history-list tall"></div>
+            <div id="historyDetail" class="history-detail empty">
+              <div class="section-eyebrow">Record Detail</div>
+              <h3>选择一条历史记录</h3>
+              <p>展开后可查看该记录的平均分、连击、时长和录制摘要。</p>
+              <div class="history-preview">暂无截图预览</div>
+              <div class="action-row">
+                <button id="replayHistoryBtn" class="btn secondary" disabled><span class="btn-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M20 12a8 8 0 0 1-13.7 5.7"></path><path d="M4 12A8 8 0 0 1 17.7 6.3"></path><path d="M6 17H3v-3"></path></svg></span><span class="btn-label">重新评估</span></button>
+                <button id="deleteHistoryBtn" class="btn secondary" disabled><span class="btn-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M8 7h8"></path><path d="M6 7h12"></path><path d="M9 7V5h6v2"></path><path d="m8 10 1 8"></path><path d="m16 10-1 8"></path></svg></span><span class="btn-label">删除记录</span></button>
+                <button id="exportHistoryBtn" class="btn secondary export-btn" disabled><span class="btn-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M12 4v10"></path><path d="m8 10 4 4 4-4"></path><path d="M5 18h14"></path></svg></span><span class="btn-label">导出摘要</span></button>
+              </div>
+            </div>
+          </section>
+        </div>
+      </section>
+
+      <section id="panel-import" class="panel">
+        <div class="single-panel-grid">
+          <section class="card wide-card">
+            <div class="section-head"><div><div class="section-kicker"><span class="section-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M12 4v10"></path><path d="m8 10 4 4 4-4"></path><path d="M5 18h14"></path></svg></span><div class="section-eyebrow">Offline Import</div></div><h3>离线导入评估</h3><p>当前已支持 NPY 动作序列直接评估，其他格式先归档。</p></div></div>
+            <div class="import-layout">
+              <form id="importForm" class="glass-form">
+                <label class="field-card compact">
+                  <span class="field-label">评估舞种</span>
+                  <select id="importDanceType">
+                    <option>黑走马 (Kara Jorga)</option>
+                    <option>木卡姆 (Muqam)</option>
+                  </select>
+                </label>
+                <label class="field-card compact file-picker">
+                  <span class="field-label">选择文件</span>
+                  <input id="importFile" type="file" accept=".npy,.bvh,.mp4,.avi">
+                </label>
+                <button id="importSubmitBtn" type="submit" class="btn primary"><span class="btn-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M12 4v10"></path><path d="m8 10 4 4 4-4"></path><path d="M5 18h14"></path></svg></span><span class="btn-label">上传并处理</span></button>
+              </form>
+              <div id="importResult" class="mini-card result-card"><span class="meta-label"><span class="meta-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M5 8h14"></path><path d="M5 12h10"></path><path d="M5 16h8"></path></svg></span>导入结果</span><strong>尚未执行导入</strong></div>
+            </div>
+            <div class="section-head inline-head"><div><div class="section-eyebrow">Import Archive</div><h3>导入记录</h3></div></div>
+            <div id="importList" class="history-list tall"></div>
+          </section>
+        </div>
+      </section>
+
+      <section id="panel-model" class="panel">
+        <div class="single-panel-grid">
+          <section class="card wide-card">
+            <div class="section-head"><div><div class="section-kicker"><span class="section-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M9 8a3 3 0 0 1 6 0"></path><path d="M7 10a5 5 0 0 1 10 0"></path><path d="M8 11v4"></path><path d="M12 11v6"></path><path d="M16 11v4"></path><path d="M9 19h6"></path></svg></span><div class="section-eyebrow">Model Center</div></div><h3>模型中心</h3><p>按舞种展示当前权重和模型加载能力。</p></div></div>
+            <div id="modelList" class="model-grid"></div>
+          </section>
+        </div>
+      </section>
+
+      <section id="panel-device" class="panel">
+        <div class="single-panel-grid">
+          <section class="card wide-card">
+            <div class="section-head"><div><div class="section-kicker"><span class="section-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><rect x="4" y="7" width="16" height="10" rx="3"></rect><path d="M9 7 10.5 5h3L15 7"></path><circle cx="12" cy="12" r="3"></circle></svg></span><div class="section-eyebrow">Device Debug</div></div><h3>设备监控</h3><p>同时展示浏览器视频设备和后端 VMC 接收状态。</p></div></div>
+            <div class="device-grid">
+              <div class="mini-card"><span class="meta-label"><span class="meta-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8"></circle><path d="M12 8v4"></path><path d="M12 16h.01"></path></svg></span>浏览器权限</span><strong id="permissionValue">待检测</strong></div>
+              <div class="mini-card"><span class="meta-label"><span class="meta-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><rect x="4" y="7" width="16" height="10" rx="3"></rect><circle cx="12" cy="12" r="3"></circle></svg></span>当前视频设备</span><strong id="activeCameraValue">未选择</strong></div>
+              <div class="mini-card"><span class="meta-label"><span class="meta-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M6 8h4"></path><path d="M14 8h4"></path><path d="M6 16h4"></path><path d="M14 16h4"></path></svg></span>设备数量</span><strong id="cameraCountValue">0</strong></div>
+              <div class="mini-card"><span class="meta-label"><span class="meta-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M12 5v7l4 2"></path><circle cx="12" cy="12" r="8"></circle></svg></span>VMC 帧率</span><strong id="vmcFpsValue">0.00 fps</strong></div>
+              <div class="mini-card"><span class="meta-label"><span class="meta-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><circle cx="12" cy="6" r="2"></circle><path d="M12 8v5"></path><path d="M8 11l4 2 4-2"></path><path d="M9 19l3-6 3 6"></path></svg></span>骨骼数量</span><strong id="vmcBoneCountValue">0</strong></div>
+              <div class="mini-card"><span class="meta-label"><span class="meta-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M5 12h14"></path><path d="m13 6 6 6-6 6"></path></svg></span>UDP 包计数</span><strong id="vmcPacketCountValue">0</strong></div>
+            </div>
+            <div id="deviceList" class="device-list"></div>
+            <div id="serverDeviceDetail" class="history-detail empty">
+              <div class="section-eyebrow">Server Metrics</div>
+              <h3>后端接收状态</h3>
+              <p id="serverDeviceSummary">等待 VMC 数据流进入。</p>
+            </div>
+          </section>
+        </div>
+      </section>
+
+      <section id="panel-account" class="panel">
+        <div class="single-panel-grid">
+          <section class="card wide-card">
+            <div class="section-head"><div><div class="section-kicker"><span class="section-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="3"></circle><path d="M6 19a6 6 0 0 1 12 0"></path></svg></span><div class="section-eyebrow">Account</div></div><h3>账号中心</h3><p>本地用户体系，支持登录、注册、重置密码和查看当前状态。</p></div></div>
+            <div class="account-grid">
+              <div class="mini-card result-card"><span class="meta-label"><span class="meta-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="3"></circle><path d="M6 19a6 6 0 0 1 12 0"></path></svg></span>当前会话</span><strong id="accountState">游客 / 学生</strong></div>
+              <div class="glass-form compact-grid">
+                <input id="loginUsername" placeholder="用户名">
+                <input id="loginPassword" type="password" placeholder="密码">
+                <button id="loginBtn" class="btn primary"><span class="btn-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M10 17l5-5-5-5"></path><path d="M15 12H4"></path><path d="M20 5v14"></path></svg></span><span class="btn-label">登录</span></button>
+                <button id="logoutBtn" class="btn secondary"><span class="btn-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M14 17l5-5-5-5"></path><path d="M19 12H8"></path><path d="M4 5v14"></path></svg></span><span class="btn-label">退出</span></button>
+              </div>
+              <div class="glass-form compact-grid">
+                <input id="registerUsername" placeholder="新用户名">
+                <input id="registerPassword" type="password" placeholder="新密码">
+                <select id="registerRole"><option>学生</option><option>教师</option><option>管理员</option></select>
+                <button id="registerBtn" class="btn secondary"><span class="btn-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M12 7v10"></path><path d="M7 12h10"></path></svg></span><span class="btn-label">注册</span></button>
+                <button id="resetPasswordBtn" class="btn secondary"><span class="btn-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M20 12a8 8 0 0 1-13.7 5.7"></path><path d="M4 12A8 8 0 0 1 17.7 6.3"></path><path d="M6 17H3v-3"></path></svg></span><span class="btn-label">重置密码</span></button>
+              </div>
+            </div>
+            <div id="userList" class="device-list"></div>
+          </section>
+        </div>
+      </section>
+
+      <section id="panel-guide" class="panel">
+        <div class="single-panel-grid">
+          <section class="card wide-card">
+            <div class="section-head"><div><div class="section-kicker"><span class="section-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8"></circle><path d="m10 14 1-4 4-1-1 4-4 1z"></path></svg></span><div class="section-eyebrow">Guide</div></div><h3>使用指引</h3><p>按这个顺序操作，最容易把 OBS 画面和 Rebocap 评分一起跑起来。</p></div></div>
+            <div class="guide-list">
+              <article class="guide-item"><strong>1. 启动 OBS 虚拟摄像头</strong><p>在 OBS 中点击“启动虚拟摄像头”，确认系统里已经暴露出 OBS Virtual Camera。</p></article>
+              <article class="guide-item"><strong>2. 允许浏览器访问摄像头</strong><p>如果浏览器权限被拒绝，前端无法枚举本地视频设备，也无法自动识别 OBS。</p></article>
+              <article class="guide-item"><strong>3. 确认 Rebocap VMC 输出</strong><p>默认监听 0.0.0.0:39539。设备监控页会显示 VMC FPS、UDP 包数量和骨骼数量。</p></article>
+              <article class="guide-item"><strong>4. 离线导入只对 NPY 自动评分</strong><p>上传 NPY 会直接评估并写入历史。BVH/视频目前先归档，后续再扩展自动解析。</p></article>
+            </div>
+          </section>
+        </div>
+      </section>
+    </section>
+  </main>
+
+  <script src="/static/app.js?v=20260318h"></script>
+</body>
+</html>
+
+
+
+
+
+
+
+
+
+
+
+
+
