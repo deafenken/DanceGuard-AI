@@ -92,16 +92,42 @@ def _load_mocap_sequence(path: str) -> np.ndarray:
     raise ValueError("当前仅支持 NPY 或 BVH 动作文件")
 
 
-def _sequence_analysis(seq: np.ndarray) -> Dict[str, Any]:
+_ANALYSIS_SCORERS: Dict[str, Scorer] = {}
+
+
+def _analysis_scorer(dance_type: str) -> Optional[Scorer]:
+    if dance_type not in DANCE_MODELS:
+        return None
+    if dance_type not in _ANALYSIS_SCORERS:
+        _ANALYSIS_SCORERS[dance_type] = Scorer(dance_type=dance_type, ckpt_path="")
+    return _ANALYSIS_SCORERS[dance_type]
+
+
+def _sequence_analysis(seq: np.ndarray, dance_type: str = "") -> Dict[str, Any]:
     if len(seq) < 2:
-        return {"worst_joint": "Hips", "joint_scores": [{"joint": "Hips", "score": 0.0, "energy": 0.0}], "segments": [{"index": 1, "start_sec": 0.0, "end_sec": 0.0, "energy": 0.0}]}
+        return {"worst_joint": "Hips", "joint_scores": [{"joint": "Hips", "score": 0.0, "error": 0.0}], "segments": [{"index": 1, "start_sec": 0.0, "end_sec": 0.0, "energy": 0.0}]}
+    scorer = _analysis_scorer(dance_type)
+    result = scorer.analyze_sequence(seq) if scorer is not None else {"worst_joint": "Hips", "joint_errors": []}
+    joint_errors = result.get("joint_errors", []) or []
+    if joint_errors:
+        max_err = max(max(float(item.get("error", 0.0)) for item in joint_errors), 1e-6)
+        joint_scores = [
+            {
+                "joint": item["joint"],
+                "score": round(max(0.0, 100.0 - float(item.get("error", 0.0)) / max_err * 100.0), 2),
+                "error": round(float(item.get("error", 0.0)), 5),
+            }
+            for item in joint_errors[:8]
+        ]
+    else:
+        velocity = np.linalg.norm(np.diff(seq, axis=0), axis=-1)
+        energy = velocity.mean(axis=0)
+        max_energy = float(np.max(energy)) if float(np.max(energy)) > 0 else 1.0
+        joint_scores = []
+        for idx in range(min(len(JOINT_NAMES), len(energy))):
+            joint_scores.append({"joint": JOINT_NAMES[idx], "score": round(max(0.0, 100.0 - float(energy[idx] / max_energy * 100.0)), 2), "error": round(float(energy[idx]), 5)})
+        joint_scores.sort(key=lambda x: (x["score"], -x["error"]))
     velocity = np.linalg.norm(np.diff(seq, axis=0), axis=-1)
-    energy = velocity.mean(axis=0)
-    max_energy = float(np.max(energy)) if float(np.max(energy)) > 0 else 1.0
-    joint_scores = []
-    for idx in range(min(len(JOINT_NAMES), len(energy))):
-        joint_scores.append({"joint": JOINT_NAMES[idx], "score": round(max(0.0, 100.0 - float(energy[idx] / max_energy * 100.0)), 2), "energy": round(float(energy[idx]), 5)})
-    joint_scores.sort(key=lambda x: (x["score"], -x["energy"]))
     seg_len = max(1, len(velocity) // 4)
     segments = []
     for seg_idx in range(4):
@@ -110,19 +136,19 @@ def _sequence_analysis(seq: np.ndarray) -> Dict[str, Any]:
         if start >= len(velocity):
             break
         segments.append({"index": seg_idx + 1, "start_sec": round(start / 30.0, 2), "end_sec": round(end / 30.0, 2), "energy": round(float(np.mean(velocity[start:end])), 5)})
-    return {"worst_joint": joint_scores[0]["joint"] if joint_scores else "Hips", "joint_scores": joint_scores[:8], "segments": segments}
+    return {"worst_joint": str(result.get("worst_joint", joint_scores[0]["joint"] if joint_scores else "Hips")), "joint_scores": joint_scores, "segments": segments}
 
 
 def _sequence_report(seq: np.ndarray, score: int, dance_type: str, feedback: str) -> str:
-    analysis = _sequence_analysis(seq)
+    analysis = _sequence_analysis(seq, dance_type)
     if len(seq) < 2:
-        return f"{dance_type} 离线评估完成。序列过短，当前分数 {score}。"
+        return f"{dance_type} ???????????????? {score}?"
     velocity = np.linalg.norm(np.diff(seq, axis=0), axis=-1)
     return (
-        f"{dance_type} 离线评估完成。最终分数 {score}。"
-        f" 平均运动能量 {float(np.mean(velocity)):.3f}，稳定性波动 {float(np.std(velocity)):.3f}。"
-        f" 当前最需要关注的关节是 {analysis['worst_joint']}。"
-        f" 系统反馈：{feedback}"
+        f"{dance_type} ??????????? {score}?"
+        f" ?????? {float(np.mean(velocity)):.3f}?????? {float(np.std(velocity)):.3f}?"
+        f" ??????????? {analysis['worst_joint']}?"
+        f" ?????{feedback}"
     )
 
 
@@ -209,11 +235,12 @@ class SessionManager:
                 if self.recorder:
                     self.recorder.append(frame.joints)
                 result = self.scorer.score_mocap_frame(frame.joints) if self.scorer else None
-                if self.recorder and len(self.recorder.frames) >= 2:
+                if self.recorder and len(self.recorder.frames) >= 8 and self.scorer:
                     try:
                         recent_seq = np.stack(self.recorder.frames[-32:], axis=0).astype(np.float32)
-                        self.state["weakest_joint"] = _sequence_analysis(recent_seq)["worst_joint"]
-                    except Exception:
+                        self.state["weakest_joint"] = str(self.scorer.analyze_sequence(recent_seq).get("worst_joint", "--"))
+                    except Exception as exc:
+                        print(f"[WARN] 实时最弱关节分析失败: {exc}")
                         self.state["weakest_joint"] = "--"
                 if result is not None:
                     score, feedback = result
@@ -242,11 +269,12 @@ class SessionManager:
         self.record_info = {"npy": npy_path, "bvh": bvh_path}
         avg_score = sum(self.score_history) / max(len(self.score_history), 1) if self.score_history else 0.0
         duration_sec = int(time.time() - float(self.state.get("started_at", 0.0))) if self.state.get("started_at") else 0
-        if self.recorder and len(self.recorder.frames) >= 2:
+        if self.recorder and self.recorder.frames and self.scorer:
             try:
                 final_seq = np.stack(self.recorder.frames, axis=0).astype(np.float32)
-                self.state["weakest_joint"] = _sequence_analysis(final_seq)["worst_joint"]
-            except Exception:
+                self.state["weakest_joint"] = str(self.scorer.analyze_sequence(final_seq).get("worst_joint", "--"))
+            except Exception as exc:
+                print(f"[WARN] 会话结束最弱关节分析失败: {exc}")
                 pass
         self.store.save_history({"username": self.state["current_user"], "role": self.state["current_role"], "dance_type": self.state["dance_type"], "avg_score": avg_score, "best_combo": self.state["best_combo"], "duration_sec": duration_sec, "grade": _grade(avg_score), "record_text": f"已保存录制：{npy_path} | {bvh_path}" if npy_path or bvh_path else "", "summary_report": f"本轮实时评估结束，平均分 {avg_score:.1f}，最高连击 {self.state['best_combo']}。", "summary_image": "", "npy_path": npy_path, "bvh_path": bvh_path, "source_type": "live_vmc", "source_path": npy_path or bvh_path})
         self.feed.appendleft(self._feed_item("SYSTEM", "会话结束", self.record_info["bvh"] or self.record_info["npy"] or "本轮评分已结束"))
@@ -284,6 +312,10 @@ class WebHandler(BaseHTTPRequestHandler):
         elif file_path.suffix == ".js": mime = "application/javascript; charset=utf-8"
         elif file_path.suffix in {".png", ".jpg", ".jpeg", ".webp"}: mime = f"image/{file_path.suffix[1:]}"
         elif file_path.suffix == ".wav": mime = "audio/wav"
+        elif file_path.suffix == ".svg": mime = "image/svg+xml"
+        elif file_path.suffix == ".mp4": mime = "video/mp4"
+        elif file_path.suffix == ".webm": mime = "video/webm"
+        elif file_path.suffix == ".mov": mime = "video/quicktime"
         body = file_path.read_bytes()
         self.send_response(HTTPStatus.OK)
         self.send_header("Content-Type", mime)
@@ -360,7 +392,7 @@ class WebHandler(BaseHTTPRequestHandler):
                 motion_path = item.get("npy_path") or item.get("bvh_path") or item.get("source_path")
                 if motion_path and os.path.exists(motion_path) and str(motion_path).lower().endswith((".npy", ".bvh")):
                     try:
-                        item["analysis"] = _sequence_analysis(_load_mocap_sequence(motion_path))
+                        item["analysis"] = _sequence_analysis(_load_mocap_sequence(motion_path), item.get("dance_type", ""))
                     except Exception:
                         item["analysis"] = None
             return _json(self, {"item": item})
@@ -430,6 +462,9 @@ def run_server(host: str = "127.0.0.1", port: int = 8000):
     finally:
         SESSION.stop()
         httpd.server_close()
+
+
+
 
 
 

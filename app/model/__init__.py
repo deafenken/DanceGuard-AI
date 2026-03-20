@@ -2,6 +2,8 @@
 
 __all__ = [
     "DanceSet",
+    "BvhDatasetBuilder",
+    "build_bvh_training_data",
     "fake_data",
     "EvalNet",
     "train_epoch",
@@ -14,6 +16,8 @@ __all__ = [
 
 _MODULE_MAP = {
     "DanceSet": (".data", "DanceSet"),
+    "BvhDatasetBuilder": (".data", "BvhDatasetBuilder"),
+    "build_bvh_training_data": (".data", "build_bvh_training_data"),
     "fake_data": (".data", "fake_data"),
     "EvalNet": (".net", "EvalNet"),
     "train_epoch": (".train", "train_epoch"),

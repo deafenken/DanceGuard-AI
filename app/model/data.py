@@ -1,5 +1,46 @@
-﻿import numpy as np
+﻿import os
+from dataclasses import dataclass
+from typing import Dict, Tuple
+
 import mindspore.dataset as ds
+import numpy as np
+
+from .bvh_io import load_bvh_as_mocap
+
+
+def _resample_sequence(seq: np.ndarray, target_len: int) -> np.ndarray:
+    seq = np.asarray(seq, dtype=np.float32)
+    if len(seq) == target_len:
+        return seq
+    if len(seq) == 0:
+        raise ValueError("sequence is empty")
+    x_old = np.arange(len(seq), dtype=np.float32)
+    x_new = np.linspace(0, len(seq) - 1, target_len, dtype=np.float32)
+    out = np.empty((target_len, seq.shape[1], seq.shape[2]), dtype=np.float32)
+    for j in range(seq.shape[1]):
+        for a in range(seq.shape[2]):
+            out[:, j, a] = np.interp(x_new, x_old, seq[:, j, a])
+    return out
+
+
+def _normalize_skeleton(seq: np.ndarray) -> np.ndarray:
+    seq = np.asarray(seq, dtype=np.float32).copy()
+    if seq.ndim != 3 or seq.shape[-1] != 3:
+        raise ValueError("sequence shape must be [T, J, 3]")
+    seq -= seq[:, :1, :]
+    head = np.linalg.norm(seq[:, 4, :], axis=1)
+    lf = np.linalg.norm(seq[:, 7, :], axis=1)
+    rf = np.linalg.norm(seq[:, 11, :], axis=1)
+    body_scale = np.maximum(np.median((head + lf + rf) / 3.0), 1e-3)
+    seq /= body_scale
+    return seq.astype(np.float32)
+
+
+@dataclass
+class DanceStandard:
+    dance_type: str
+    path: str
+    sequence: np.ndarray
 
 
 class DanceSet:
@@ -32,6 +73,101 @@ class DanceSet:
             shuffle=shuffle,
             python_multiprocessing=False,
         ).batch(batch_size, drop_remainder=False)
+
+
+class BvhDatasetBuilder:
+    """从标准 BVH 构造伪多模态训练集。真实输入只有骨架，视觉模态走缺失插补。"""
+
+    def __init__(self, standards: Dict[str, str], seq_len: int = 64, joints: int = 24, seed: int = 7):
+        self.seq_len = seq_len
+        self.joints = joints
+        self.rng = np.random.default_rng(seed)
+        self.standards = self._load_standards(standards)
+        if not self.standards:
+            raise ValueError("no valid BVH standards found")
+
+    def _load_standards(self, standards: Dict[str, str]):
+        loaded = []
+        for dance_type, path in standards.items():
+            if not path or not os.path.exists(path):
+                continue
+            seq = load_bvh_as_mocap(path, joints=self.joints)
+            seq = _normalize_skeleton(seq)
+            loaded.append(DanceStandard(dance_type=dance_type, path=path, sequence=seq))
+        return loaded
+
+    def _random_window(self, seq: np.ndarray) -> np.ndarray:
+        if len(seq) <= self.seq_len:
+            return _resample_sequence(seq, self.seq_len)
+        span = int(self.rng.integers(self.seq_len, min(len(seq), self.seq_len * 2) + 1))
+        start_max = max(len(seq) - span, 1)
+        start = int(self.rng.integers(0, start_max))
+        return seq[start : start + span]
+
+    def _augment(self, seq: np.ndarray) -> Tuple[np.ndarray, float]:
+        tempo = float(self.rng.uniform(0.88, 1.12))
+        amp = float(self.rng.uniform(0.92, 1.08))
+        noise_sigma = float(self.rng.uniform(0.002, 0.035))
+        jitter_sigma = float(self.rng.uniform(0.0, 0.018))
+        drift_sigma = float(self.rng.uniform(0.0, 0.012))
+
+        warped_len = max(16, int(round(len(seq) * tempo)))
+        aug = _resample_sequence(seq, warped_len)
+        aug = _resample_sequence(aug, self.seq_len)
+        aug *= amp
+        aug += self.rng.normal(0.0, noise_sigma, size=aug.shape).astype(np.float32)
+
+        if jitter_sigma > 0:
+            jitter = self.rng.normal(0.0, jitter_sigma, size=(self.seq_len, 1, 3)).astype(np.float32)
+            aug += jitter
+        if drift_sigma > 0:
+            drift = self.rng.normal(0.0, drift_sigma, size=(1, aug.shape[1], 3)).astype(np.float32)
+            aug += drift
+
+        severe = self.rng.random() < 0.18
+        if severe:
+            joint_idx = int(self.rng.integers(4, min(21, aug.shape[1])))
+            aug[:, joint_idx, :] += self.rng.normal(0.0, 0.08, size=(self.seq_len, 3)).astype(np.float32)
+
+        penalty = (
+            noise_sigma * 900.0
+            + abs(tempo - 1.0) * 110.0
+            + abs(amp - 1.0) * 80.0
+            + jitter_sigma * 420.0
+            + drift_sigma * 520.0
+            + (10.0 if severe else 0.0)
+        )
+        score = float(np.clip(100.0 - penalty, 55.0, 100.0))
+        return aug.astype(np.float32), score
+
+    def build_arrays(self, samples_per_dance: int = 600, include_reference: int = 40):
+        motions = []
+        labels = []
+        meta = []
+        for standard in self.standards:
+            for _ in range(include_reference):
+                ref = _resample_sequence(standard.sequence, self.seq_len)
+                motions.append(ref.astype(np.float32))
+                labels.append(100.0)
+                meta.append(standard.dance_type)
+            for _ in range(samples_per_dance):
+                window = self._random_window(standard.sequence)
+                aug, score = self._augment(window)
+                motions.append(aug)
+                labels.append(score)
+                meta.append(standard.dance_type)
+        x = np.stack(motions, axis=0).astype(np.float32)
+        y = np.asarray(labels, dtype=np.float32)
+        return x, y, meta
+
+    def build_dataset(self, samples_per_dance: int = 600, include_reference: int = 40, batch_size: int = 8, shuffle: bool = True):
+        mocap, score, _ = self.build_arrays(samples_per_dance=samples_per_dance, include_reference=include_reference)
+        return DanceSet(mocap, score).to_ds(batch_size=batch_size, shuffle=shuffle)
+
+
+def build_bvh_training_data(standards: Dict[str, str], samples_per_dance: int = 600, seq_len: int = 64, joints: int = 24, seed: int = 7):
+    builder = BvhDatasetBuilder(standards=standards, seq_len=seq_len, joints=joints, seed=seed)
+    return builder.build_arrays(samples_per_dance=samples_per_dance)
 
 
 def fake_data(n: int = 100, t: int = 64, j: int = 24, seed: int = 7):

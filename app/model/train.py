@@ -26,3 +26,14 @@ def train_epoch(net, dataset, lr: float = 1e-3, ckpt_path: str = "assets/weights
     print(f"train_loss={mean_loss:.6f}, ckpt={ckpt_path}")
     return mean_loss
 
+
+def eval_epoch(net, dataset) -> float:
+    loss_fn = nn.MSELoss()
+    losses = []
+    net.set_train(False)
+    for mocap, rgb, flow, label in dataset.create_tuple_iterator(num_epochs=1):
+        _, _, final = net(mocap, rgb, flow)
+        pred = ops.squeeze(final, axis=-1)
+        loss = loss_fn(pred, label)
+        losses.append(float(loss.asnumpy()))
+    return float(np.mean(losses)) if losses else 0.0

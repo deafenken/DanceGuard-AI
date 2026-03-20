@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>民族舞智能评估系统</title>
-  <link rel="stylesheet" href="/static/styles.css?v=20260318h">
+  <link rel="stylesheet" href="/static/styles.css?v=20260320l">
 </head>
 <body>
   <div class="aurora aurora-a"></div>
@@ -56,9 +56,9 @@
     <section class="workspace">
       <section class="hero card fade-up fade-delay-1">
         <div class="hero-copy">
-          <div class="eyebrow">Apple Style Dashboard</div>
-          <h2>民族舞实时评估浏览器工作台</h2>
-          <p>当前版本已经打通实时评估、离线导入、历史管理、模型中心、设备诊断和账号状态。侧边栏按业务分层，主区域只展示当前任务必需的信息。</p>
+          <div class="eyebrow">Real-Time Dance Evaluation</div>
+          <h2 class="hero-title"><span>民族舞实时评估</span><span>控制台</span></h2>
+          <p>当前版本已经打通实时评估、离线导入、历史管理、模型中心、设备诊断和账号状态。侧边栏按业务分层，主区域聚焦当前任务必需的信息。</p>
         </div>
         <div class="hero-actions command-bar">
           <button id="startBtn" class="btn primary"><span class="btn-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M8 6v12l9-6z"></path></svg></span><span class="btn-label">开始评估</span></button>
@@ -68,31 +68,37 @@
       </section>
 
       <section class="toolbar-grid fade-up fade-delay-2">
-        <label class="card field-card">
+        <label class="card field-card field-card-icon">
           <span class="field-label">舞种</span>
+          <span class="field-prefix" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M12 4 14.3 8.7 19.5 9.4 15.7 13.1 16.6 18.3 12 15.9 7.4 18.3 8.3 13.1 4.5 9.4 9.7 8.7z"></path></svg></span>
           <select id="danceType">
             <option>黑走马 (Kara Jorga)</option>
             <option>木卡姆 (Muqam)</option>
           </select>
         </label>
-        <label class="card field-card">
+        <label class="card field-card field-card-icon">
           <span class="field-label">视频设备</span>
+          <span class="field-prefix" aria-hidden="true"><svg viewBox="0 0 24 24"><rect x="4" y="7" width="16" height="10" rx="3"></rect><path d="M10 10h4"></path><path d="M9 14h6"></path></svg></span>
           <select id="cameraSelect"></select>
         </label>
-        <label class="card field-card">
+        <label class="card field-card field-card-icon monitor-card">
           <span class="field-label">VMC Host</span>
+          <span class="field-prefix" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M5 12h14"></path><path d="M12 5v14"></path><circle cx="12" cy="12" r="8"></circle></svg></span>
           <input id="vmcHost" value="0.0.0.0">
         </label>
-        <label class="card field-card">
+        <label class="card field-card field-card-icon monitor-card">
           <span class="field-label">VMC Port</span>
+          <span class="field-prefix" aria-hidden="true"><svg viewBox="0 0 24 24"><rect x="6" y="5" width="12" height="14" rx="3"></rect><path d="M9 9h6"></path><path d="M9 13h4"></path></svg></span>
           <input id="vmcPort" value="39539">
         </label>
-        <div class="card field-card metric-card">
+        <div class="card field-card field-card-icon metric-card monitor-card emphasis-card">
           <span class="field-label">计时</span>
+          <span class="field-prefix" aria-hidden="true"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="7"></circle><path d="M12 8v4l2 2"></path></svg></span>
           <div id="timerValue" class="digital">00:00</div>
         </div>
-        <div class="card field-card metric-card">
+        <div class="card field-card field-card-icon metric-card monitor-card">
           <span class="field-label">视频状态</span>
+          <span class="field-prefix" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M5 12a7 7 0 0 1 14 0"></path><path d="M8 12a4 4 0 0 1 8 0"></path><circle cx="12" cy="16" r="1.2"></circle></svg></span>
           <div id="videoStatus" class="pill status-neutral">视频待连接</div>
         </div>
       </section>
@@ -108,8 +114,54 @@
               </div>
               <div id="rankPill" class="pill">IDLE</div>
             </div>
-            <div class="video-stage">
-              <video id="video" autoplay playsinline muted></video>
+            <div id="videoStage" class="video-stage">
+              <div class="video-overlay-top">
+                <div class="video-top-meta">
+                  <div class="video-badge"><span class="video-dot"></span><span id="videoPrimaryLabel">Live Capture</span></div>
+                  <div id="videoPrimarySubtag" class="video-subtag">OBS / &#x4e91;&#x666f;&#x865a;&#x62df;&#x6444;&#x50cf;&#x5934;</div>
+                </div>
+                <div id="videoDebug" class="video-debug">FS:0 | SW:0 | N:-- | F:--</div>
+              </div>
+              <div class="video-overlay-bottom">
+                <div class="video-stage-actions-shell"><div class="video-top-actions video-stage-actions-corner">
+                  <button id="swapVideoBtn" class="stage-action-btn" type="button"><span class="stage-btn-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M8 7h9"></path><path d="m14 4 3 3-3 3"></path><path d="M16 17H7"></path><path d="m10 14-3 3 3 3"></path></svg></span><span class="stage-btn-label">&#x4ea4;&#x6362;&#x753b;&#x9762;</span></button>
+                  <button id="fullscreenBtn" class="stage-action-btn" type="button"><span class="stage-btn-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M8 4H4v4"></path><path d="M16 4h4v4"></path><path d="M20 16v4h-4"></path><path d="M4 16v4h4"></path></svg></span><span class="stage-btn-label">&#x5168;&#x5c4f;</span></button>
+                </div></div>
+              </div>
+              <div class="video-main-pane">
+                <video id="video" autoplay playsinline muted></video>
+                <div class="pip-resize-handle" data-resize-pane="live" aria-hidden="true"></div>
+              </div>
+              <div id="standardPrimarySurface" class="standard-primary-surface">
+                <video id="standardPrimaryVideo" loop playsinline muted preload="metadata"></video>
+                <div id="standardPrimaryEmpty" class="standard-primary-empty">未配置标准视频</div>
+              </div>
+              <div id="standardPane" class="standard-pane">
+                <div class="standard-pane-head">
+                  <div class="standard-badge">Standard Demo</div>
+                  <div class="standard-actions">
+                    <button id="standardReplayBtn" class="stage-mini-action" type="button" aria-label="replay"><span class="stage-mini-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M4 12a8 8 0 1 0 2.3-5.7"></path><path d="M4 5v5h5"></path></svg></span></button>
+                    <button id="standardPlayBtn" class="stage-mini-action" type="button" aria-label="play-pause"><span class="stage-mini-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M8 6v12l9-6z"></path></svg></span></button>
+                    <button id="standardResetBtn" class="stage-mini-action" type="button" aria-label="reset-size"><span class="stage-mini-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M6 6h5"></path><path d="M6 6v5"></path><path d="M18 18h-5"></path><path d="M18 18v-5"></path><path d="M9 15 6 18"></path><path d="M15 9l3-3"></path></svg></span></button>
+                    <button id="swapVideoBtnMini" class="stage-mini-action" type="button" aria-label="swap"><span class="stage-mini-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M8 7h9"></path><path d="m14 4 3 3-3 3"></path><path d="M16 17H7"></path><path d="m10 14-3 3 3 3"></path></svg></span></button>
+                  </div>
+                </div>
+                <video id="standardVideo" loop playsinline muted preload="metadata"></video>
+                <div id="standardEmpty" class="standard-empty">&#x672a;&#x914d;&#x7f6e;&#x6807;&#x51c6;&#x89c6;&#x9891;</div>
+                <div class="standard-progress-shell">
+                  <div id="standardProgressBar" class="standard-progress-bar"></div>
+                </div>
+                <div class="standard-timebar">
+                  <span id="standardCurrentTime">00:00</span>
+                  <span id="standardDuration">00:00</span>
+                </div>
+                <div class="pip-resize-handle" data-resize-pane="standard" aria-hidden="true"></div>
+              </div>
+              <div id="countdownFx" class="countdown hidden">3</div>
+              <div id="fullscreenHint" class="fullscreen-hint hidden">Esc &#x9000;&#x51fa;&#x5168;&#x5c4f;</div>
+              <div id="pipSizeHint" class="pip-size-hint hidden">260 px</div>
+              <div id="pipBoundHint" class="pip-bound-hint hidden">已到边界</div>
+              <div id="swapFlash" class="swap-flash hidden"></div>
               <div id="perfectFx" class="perfect hidden">PERFECT!</div>
               <div id="judgeFx" class="judge hidden">PERFECT</div>
               <div id="comboFx" class="combo hidden">COMBO x0</div>
@@ -127,10 +179,11 @@
             </div>
             <div id="scoreValue" class="score">0</div>
             <div class="progress"><div id="scoreBar"></div></div>
-            <div class="metrics">
-              <div class="mini-card"><span class="meta-label"><span class="meta-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M12 4v16"></path><path d="M7 9h10"></path><path d="M9 15h6"></path></svg></span>当前舞种</span><strong id="danceValue">未启动</strong></div>
-              <div class="mini-card"><span class="meta-label"><span class="meta-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M13 3 6 13h5l-1 8 8-11h-5l0-7z"></path></svg></span>最高连击</span><strong id="bestCombo">0</strong></div>
-              <div class="mini-card"><span class="meta-label"><span class="meta-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M5 8h14"></path><path d="M5 12h10"></path><path d="M5 16h8"></path></svg></span>当前反馈</span><strong id="feedbackValue">等待开始</strong></div><div class="mini-card"><span class="meta-label"><span class="meta-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="7"></circle><path d="M12 9v3l2 2"></path></svg></span>实时弱项</span><strong id="weakestJointValue">--</strong></div>
+            <div class="overview-grid metrics">
+              <div class="mini-card"><span class="meta-label"><span class="meta-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="7"></circle><path d="M12 8v4"></path><path d="M10 10h4"></path><path d="M9 16c1.2-1 2-1.4 3-1.4S13.8 15 15 16"></path></svg></span>当前舞种</span><strong id="danceValue">未启动</strong></div>
+              <div class="mini-card"><span class="meta-label"><span class="meta-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M12 4 14.3 8.7 19.5 9.4 15.7 13.1 16.6 18.3 12 15.9 7.4 18.3 8.3 13.1 4.5 9.4 9.7 8.7z"></path></svg></span>最高连击</span><strong id="bestCombo">0</strong></div>
+              <div class="mini-card"><span class="meta-label"><span class="meta-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M6 7h12"></path><path d="M6 12h12"></path><path d="M6 17h8"></path></svg></span>当前反馈</span><strong id="feedbackValue">等待开始</strong></div>
+              <div class="mini-card"><span class="meta-label"><span class="meta-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="7"></circle><path d="M12 9v3l2 2"></path></svg></span>实时弱项</span><strong id="weakestJointValue">--</strong></div>
             </div>
           </section>
 
@@ -156,7 +209,7 @@
                 <h3>会话概览</h3>
               </div>
             </div>
-            <div class="summary-list">
+            <div class="overview-grid summary-list">
               <div class="summary-item"><span class="meta-label"><span class="meta-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="3"></circle><path d="M6 19a6 6 0 0 1 12 0"></path></svg></span>当前账号</span><strong id="userValue">游客 / 学生</strong></div>
               <div class="summary-item"><span class="meta-label"><span class="meta-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M5 18h14"></path><path d="M7 14h4"></path><path d="M13 10h4"></path><path d="M9 6h6"></path></svg></span>VMC 源</span><strong id="vmcValue">0.0.0.0:39539</strong></div>
               <div class="summary-item"><span class="meta-label"><span class="meta-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><rect x="5" y="6" width="14" height="12" rx="3"></rect><path d="M10 10h4"></path><path d="M10 14h4"></path></svg></span>最新录制</span><strong id="recordValue">尚未生成</strong></div>
@@ -192,9 +245,9 @@
                 </div>
               </div>
               <div class="score-focus-side">
-                <div class="mini-card"><span>当前判定</span><strong id="scoreFocusRank">IDLE</strong></div>
-                <div class="mini-card"><span>当前反馈</span><strong id="scoreFocusFeedback">等待开始</strong></div>
-                <div class="mini-card"><span>当前连击</span><strong id="scoreFocusCombo">0</strong></div><div class="mini-card"><span>最弱关节</span><strong id="scoreFocusWeakest">--</strong></div>
+                <div class="mini-card focus-metric-card"><span class="meta-label"><span class="meta-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M7 12h10"></path><path d="M9 8h6"></path><path d="M9 16h6"></path></svg></span>当前判定</span><strong id="scoreFocusRank">IDLE</strong></div>
+                <div class="mini-card focus-metric-card"><span class="meta-label"><span class="meta-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M5 8h14"></path><path d="M5 12h10"></path><path d="M5 16h8"></path></svg></span>当前反馈</span><strong id="scoreFocusFeedback">等待开始</strong></div>
+                <div class="mini-card focus-metric-card"><span class="meta-label"><span class="meta-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M13 3 6 13h5l-1 8 8-11h-5l0-7z"></path></svg></span>当前连击</span><strong id="scoreFocusCombo">0</strong></div><div class="mini-card focus-metric-card"><span class="meta-label"><span class="meta-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="7"></circle><path d="M12 9v3l2 2"></path></svg></span>最弱关节</span><strong id="scoreFocusWeakest">--</strong></div>
               </div>
             </div>
           </section>
@@ -230,7 +283,7 @@
               <button id="historyFilterBtn" class="btn secondary"><span class="btn-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M4 7h16"></path><path d="M7 12h10"></path><path d="M10 17h4"></path></svg></span><span class="btn-label">筛选</span></button>
             </div>
             <div id="historyListWide" class="history-list tall"></div>
-            <div id="historyDetail" class="history-detail empty">
+            <div id="historyDetail" class="history-detail history-detail-elevated empty">
               <div class="section-eyebrow">Record Detail</div>
               <h3>选择一条历史记录</h3>
               <p>展开后可查看该记录的平均分、连击、时长和录制摘要。</p>
@@ -250,7 +303,7 @@
           <section class="card wide-card">
             <div class="section-head"><div><div class="section-kicker"><span class="section-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M12 4v10"></path><path d="m8 10 4 4 4-4"></path><path d="M5 18h14"></path></svg></span><div class="section-eyebrow">Offline Import</div></div><h3>离线导入评估</h3><p>当前已支持 NPY 动作序列直接评估，其他格式先归档。</p></div></div>
             <div class="import-layout">
-              <form id="importForm" class="glass-form">
+              <form id="importForm" class="glass-form glass-form-elevated">
                 <label class="field-card compact">
                   <span class="field-label">评估舞种</span>
                   <select id="importDanceType">
@@ -284,13 +337,12 @@
       <section id="panel-device" class="panel">
         <div class="single-panel-grid">
           <section class="card wide-card">
-            <div class="section-head"><div><div class="section-kicker"><span class="section-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><rect x="4" y="7" width="16" height="10" rx="3"></rect><path d="M9 7 10.5 5h3L15 7"></path><circle cx="12" cy="12" r="3"></circle></svg></span><div class="section-eyebrow">Device Debug</div></div><h3>设备监控</h3><p>同时展示浏览器视频设备和后端 VMC 接收状态。</p></div></div>
-            <div class="device-grid">
-              <div class="mini-card"><span class="meta-label"><span class="meta-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8"></circle><path d="M12 8v4"></path><path d="M12 16h.01"></path></svg></span>浏览器权限</span><strong id="permissionValue">待检测</strong></div>
+            <div class="device-grid compact-grid">
+              <div class="mini-card"><span class="meta-label"><span class="meta-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M12 3 6 6v5c0 4 2.7 7 6 10 3.3-3 6-6 6-10V6z"></path><path d="m9.5 12 1.8 1.8 3.2-3.6"></path></svg></span>浏览器权限</span><strong id="permissionValue">待检测</strong></div>
               <div class="mini-card"><span class="meta-label"><span class="meta-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><rect x="4" y="7" width="16" height="10" rx="3"></rect><circle cx="12" cy="12" r="3"></circle></svg></span>当前视频设备</span><strong id="activeCameraValue">未选择</strong></div>
-              <div class="mini-card"><span class="meta-label"><span class="meta-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M6 8h4"></path><path d="M14 8h4"></path><path d="M6 16h4"></path><path d="M14 16h4"></path></svg></span>设备数量</span><strong id="cameraCountValue">0</strong></div>
-              <div class="mini-card"><span class="meta-label"><span class="meta-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M12 5v7l4 2"></path><circle cx="12" cy="12" r="8"></circle></svg></span>VMC 帧率</span><strong id="vmcFpsValue">0.00 fps</strong></div>
-              <div class="mini-card"><span class="meta-label"><span class="meta-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><circle cx="12" cy="6" r="2"></circle><path d="M12 8v5"></path><path d="M8 11l4 2 4-2"></path><path d="M9 19l3-6 3 6"></path></svg></span>骨骼数量</span><strong id="vmcBoneCountValue">0</strong></div>
+              <div class="mini-card"><span class="meta-label"><span class="meta-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><rect x="5" y="6" width="5" height="5" rx="1.5"></rect><rect x="14" y="6" width="5" height="5" rx="1.5"></rect><rect x="5" y="13" width="5" height="5" rx="1.5"></rect><rect x="14" y="13" width="5" height="5" rx="1.5"></rect></svg></span>设备数量</span><strong id="cameraCountValue">0</strong></div>
+              <div class="mini-card"><span class="meta-label"><span class="meta-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M4 12h5"></path><path d="M9 8v8"></path><path d="M15 6v12"></path><path d="M20 9v6"></path></svg></span>VMC 帧率</span><strong id="vmcFpsValue">0.00 fps</strong></div>
+              <div class="mini-card"><span class="meta-label"><span class="meta-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><circle cx="12" cy="5.5" r="2"></circle><path d="M12 7.5v4"></path><path d="M9 10.5 12 12l3-1.5"></path><path d="M9 18l3-6 3 6"></path><path d="M7.5 14 12 12l4.5 2"></path></svg></span>骨骼数量</span><strong id="vmcBoneCountValue">0</strong></div>
               <div class="mini-card"><span class="meta-label"><span class="meta-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M5 12h14"></path><path d="m13 6 6 6-6 6"></path></svg></span>UDP 包计数</span><strong id="vmcPacketCountValue">0</strong></div>
             </div>
             <div id="deviceList" class="device-list"></div>
@@ -344,9 +396,41 @@
     </section>
   </main>
 
-  <script src="/static/app.js?v=20260318h"></script>
+  <script src="/static/app.js?v=20260320n"></script>
 </body>
 </html>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 

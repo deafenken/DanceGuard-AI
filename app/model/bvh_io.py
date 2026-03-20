@@ -98,22 +98,26 @@ def _channel_rotation(channels: List[str], values: List[float]) -> np.ndarray:
 
 
 def _normalize_name(name: str) -> str:
-    return name.replace("_", "").replace(" ", "").lower()
-
+    return "".join(ch for ch in name.lower() if ch.isalnum())
 
 def _resolve_joint_map(names: List[str]) -> List[Optional[int]]:
-    normalized = {_normalize_name(name): idx for idx, name in enumerate(names)}
+    normalized = [(_normalize_name(name), idx) for idx, name in enumerate(names)]
+    exact = {name: idx for name, idx in normalized}
     resolved: List[Optional[int]] = []
     for target in MODEL_JOINT_NAMES:
         idx = None
-        for alias in JOINT_ALIASES.get(target, [target]):
-            key = _normalize_name(alias)
-            if key in normalized:
-                idx = normalized[key]
+        aliases = [_normalize_name(alias) for alias in JOINT_ALIASES.get(target, [target])]
+        for key in aliases:
+            if key in exact:
+                idx = exact[key]
                 break
+        if idx is None:
+            for norm_name, norm_idx in normalized:
+                if any(norm_name.endswith(key) for key in aliases):
+                    idx = norm_idx
+                    break
         resolved.append(idx)
     return resolved
-
 
 def load_bvh_as_mocap(path: str, joints: int = 24) -> np.ndarray:
     text = Path(path).read_text(encoding="utf-8", errors="ignore")
@@ -220,3 +224,5 @@ def load_bvh_as_mocap(path: str, joints: int = 24) -> np.ndarray:
         if src_idx is not None:
             out[:, target_idx] = global_pos[:, src_idx]
     return out
+
+
