@@ -6,6 +6,7 @@ import mindspore.dataset as ds
 import numpy as np
 
 from .bvh_io import load_bvh_as_mocap
+from .runtime import Scorer
 
 
 def _resample_sequence(seq: np.ndarray, target_len: int) -> np.ndarray:
@@ -85,6 +86,7 @@ class BvhDatasetBuilder:
         self.standards = self._load_standards(standards)
         if not self.standards:
             raise ValueError("no valid BVH standards found")
+        self.scorers = {standard.dance_type: Scorer(dance_type=standard.dance_type, ckpt_path="", joints=self.joints, seq_len=self.seq_len) for standard in self.standards}
 
     def _load_standards(self, standards: Dict[str, str]):
         loaded = []
@@ -129,16 +131,7 @@ class BvhDatasetBuilder:
             joint_idx = int(self.rng.integers(4, min(21, aug.shape[1])))
             aug[:, joint_idx, :] += self.rng.normal(0.0, 0.08, size=(self.seq_len, 3)).astype(np.float32)
 
-        penalty = (
-            noise_sigma * 900.0
-            + abs(tempo - 1.0) * 110.0
-            + abs(amp - 1.0) * 80.0
-            + jitter_sigma * 420.0
-            + drift_sigma * 520.0
-            + (10.0 if severe else 0.0)
-        )
-        score = float(np.clip(100.0 - penalty, 55.0, 100.0))
-        return aug.astype(np.float32), score
+        return aug.astype(np.float32)
 
     def build_arrays(self, samples_per_dance: int = 600, include_reference: int = 40):
         motions = []
@@ -150,9 +143,11 @@ class BvhDatasetBuilder:
                 motions.append(ref.astype(np.float32))
                 labels.append(100.0)
                 meta.append(standard.dance_type)
+            scorer = self.scorers[standard.dance_type]
             for _ in range(samples_per_dance):
                 window = self._random_window(standard.sequence)
-                aug, score = self._augment(window)
+                aug = self._augment(window)
+                score = float(scorer.score_mocap_sequence(aug)["final"])
                 motions.append(aug)
                 labels.append(score)
                 meta.append(standard.dance_type)

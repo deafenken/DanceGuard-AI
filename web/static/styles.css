@@ -3067,3 +3067,74 @@ textarea {
 .video-stage.stage-swapped .standard-pane .pip-resize-handle {
   opacity: 0 !important;
 }
+
+
+.analysis-row.compact {
+  grid-template-columns: 130px 1fr 56px;
+  padding: 9px 12px;
+}
+.analysis-bar.cfpi i {
+  background: linear-gradient(90deg, #0071e3, #1fc8ff);
+}
+.analysis-bar.cfpi-sub i {
+  background: linear-gradient(90deg, #667eea, #8b5cff);
+}
+.analysis-bar.cultural i {
+  background: linear-gradient(90deg, #ff9f43, #ff5f57);
+}
+.detail-badges .pill {
+  white-space: nowrap;
+}
+.report-card strong {
+  white-space: pre-wrap;
+}
+
+
+.cfpi-card strong {
+  color: #0f3f8f;
+}
+.cfpi-card {
+  background: linear-gradient(180deg, rgba(255,255,255,0.78), rgba(239,246,255,0.62));
+}
+
+
+.cfpi-cultural-card {
+  grid-column: 1 / -1;
+}
+.cfpi-live-list {
+  display: grid;
+  gap: 10px;
+  margin-top: 10px;
+}
+.cfpi-live-row {
+  display: grid;
+  grid-template-columns: 48px 1fr 42px;
+  gap: 8px;
+  align-items: center;
+  font-size: 12px;
+  color: #49526a;
+}
+.cfpi-live-row em {
+  font-style: normal;
+  text-align: right;
+  color: #0f3f8f;
+  font-weight: 700;
+}
+.cfpi-live-row .mini-progress {
+  height: 8px;
+}
+.cfpi-live-row .mini-progress > div {
+  height: 100%;
+  border-radius: 999px;
+  background: linear-gradient(90deg, #ff9f43, #ff5f57);
+}
+
+
+.score-card .section-head {
+  align-items: flex-start;
+}
+#cfpiTotalBadge {
+  min-width: 92px;
+  justify-content: center;
+  font-variant-numeric: tabular-nums;
+}

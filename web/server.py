@@ -105,9 +105,14 @@ def _analysis_scorer(dance_type: str) -> Optional[Scorer]:
 
 def _sequence_analysis(seq: np.ndarray, dance_type: str = "") -> Dict[str, Any]:
     if len(seq) < 2:
-        return {"worst_joint": "Hips", "joint_scores": [{"joint": "Hips", "score": 0.0, "error": 0.0}], "segments": [{"index": 1, "start_sec": 0.0, "end_sec": 0.0, "energy": 0.0}]}
+        return {
+            "worst_joint": "Hips",
+            "joint_scores": [{"joint": "Hips", "score": 0.0, "error": 0.0}],
+            "segments": [{"index": 1, "start_sec": 0.0, "end_sec": 0.0, "energy": 0.0}],
+            "cfpi": {"total": 0.0, "dimensions": {}, "components": {}, "cultural_features": {}},
+        }
     scorer = _analysis_scorer(dance_type)
-    result = scorer.analyze_sequence(seq) if scorer is not None else {"worst_joint": "Hips", "joint_errors": []}
+    result = scorer.analyze_sequence(seq) if scorer is not None else {"worst_joint": "Hips", "joint_errors": [], "cfpi": {}}
     joint_errors = result.get("joint_errors", []) or []
     if joint_errors:
         max_err = max(max(float(item.get("error", 0.0)) for item in joint_errors), 1e-6)
@@ -136,21 +141,38 @@ def _sequence_analysis(seq: np.ndarray, dance_type: str = "") -> Dict[str, Any]:
         if start >= len(velocity):
             break
         segments.append({"index": seg_idx + 1, "start_sec": round(start / 30.0, 2), "end_sec": round(end / 30.0, 2), "energy": round(float(np.mean(velocity[start:end])), 5)})
-    return {"worst_joint": str(result.get("worst_joint", joint_scores[0]["joint"] if joint_scores else "Hips")), "joint_scores": joint_scores, "segments": segments}
+    return {
+        "worst_joint": str(result.get("worst_joint", joint_scores[0]["joint"] if joint_scores else "Hips")),
+        "joint_scores": joint_scores,
+        "segments": segments,
+        "cfpi": result.get("cfpi", {"total": 0.0, "dimensions": {}, "components": {}, "cultural_features": {}}),
+    }
 
 
 def _sequence_report(seq: np.ndarray, score: int, dance_type: str, feedback: str) -> str:
     analysis = _sequence_analysis(seq, dance_type)
+    cfpi = analysis.get("cfpi", {})
+    dimensions = cfpi.get("dimensions", {})
     if len(seq) < 2:
-        return f"{dance_type} ???????????????? {score}?"
+        return f"{dance_type} 综合得分 {score} 分，当前动作长度不足，暂时无法生成完整文化特征分析。"
     velocity = np.linalg.norm(np.diff(seq, axis=0), axis=-1)
+    weakest_dim = "暂无"
+    if dimensions:
+        dim_map = {
+            "accuracy": "动作准确度",
+            "rhythm": "节奏同步性",
+            "fluency": "流畅度",
+            "expression": "表现力",
+        }
+        weakest_key = min(dimensions, key=lambda key: dimensions[key])
+        weakest_dim = dim_map.get(weakest_key, weakest_key)
     return (
-        f"{dance_type} ??????????? {score}?"
-        f" ?????? {float(np.mean(velocity)):.3f}?????? {float(np.std(velocity)):.3f}?"
-        f" ??????????? {analysis['worst_joint']}?"
-        f" ?????{feedback}"
+        f"{dance_type} 综合得分 {score} 分。"
+        f" CFPI 主评分 {cfpi.get('total', score):.2f} 分。"
+        f" 平均运动能量 {float(np.mean(velocity)):.3f}，速度波动 {float(np.std(velocity)):.3f}。"
+        f" 当前最弱关节为 {analysis['worst_joint']}，最弱维度为 {weakest_dim}。"
+        f" 反馈：{feedback}"
     )
-
 
 class SessionManager:
     def __init__(self):
@@ -169,7 +191,7 @@ class SessionManager:
 
     def reset_state(self):
         state = self.store.get_state()
-        self.state = {"active": False, "dance_type": "未启动", "host": "0.0.0.0", "port": 39539, "score": 0, "feedback": "等待开始", "rank": "IDLE", "model_status": "未加载", "elapsed_sec": 0, "best_combo": 0, "combo": 0, "stats": {"PERFECT": 0, "GREAT": 0, "GOOD": 0, "WARN": 0}, "started_at": 0.0, "last_update": 0.0, "current_user": state.get("current_user", GUEST_USER), "current_role": state.get("current_role", STUDENT_ROLE), "last_import_path": state.get("last_import_path", ""), "weakest_joint": "--"}
+        self.state = {"active": False, "dance_type": "未启动", "host": "0.0.0.0", "port": 39539, "score": 0, "feedback": "等待开始", "rank": "IDLE", "model_status": "未加载", "elapsed_sec": 0, "best_combo": 0, "combo": 0, "stats": {"PERFECT": 0, "GREAT": 0, "GOOD": 0, "WARN": 0}, "started_at": 0.0, "last_update": 0.0, "current_user": state.get("current_user", GUEST_USER), "current_role": state.get("current_role", STUDENT_ROLE), "last_import_path": state.get("last_import_path", ""), "weakest_joint": "--", "cfpi": {"total": 0.0, "dimensions": {"accuracy": 0.0, "rhythm": 0.0, "fluency": 0.0, "expression": 0.0}}}
 
     def _scope_username(self) -> Optional[str]:
         return self.store.history_scope(self.state["current_user"], self.state["current_role"])
@@ -238,7 +260,9 @@ class SessionManager:
                 if self.recorder and len(self.recorder.frames) >= 8 and self.scorer:
                     try:
                         recent_seq = np.stack(self.recorder.frames[-32:], axis=0).astype(np.float32)
-                        self.state["weakest_joint"] = str(self.scorer.analyze_sequence(recent_seq).get("worst_joint", "--"))
+                        analysis = self.scorer.analyze_sequence(recent_seq)
+                        self.state["weakest_joint"] = str(analysis.get("worst_joint", "--"))
+                        self.state["cfpi"] = analysis.get("cfpi", self.state["cfpi"])
                     except Exception as exc:
                         print(f"[WARN] 实时最弱关节分析失败: {exc}")
                         self.state["weakest_joint"] = "--"
@@ -272,7 +296,9 @@ class SessionManager:
         if self.recorder and self.recorder.frames and self.scorer:
             try:
                 final_seq = np.stack(self.recorder.frames, axis=0).astype(np.float32)
-                self.state["weakest_joint"] = str(self.scorer.analyze_sequence(final_seq).get("worst_joint", "--"))
+                analysis = self.scorer.analyze_sequence(final_seq)
+                self.state["weakest_joint"] = str(analysis.get("worst_joint", "--"))
+                self.state["cfpi"] = analysis.get("cfpi", self.state["cfpi"])
             except Exception as exc:
                 print(f"[WARN] 会话结束最弱关节分析失败: {exc}")
                 pass

@@ -12,6 +12,7 @@
   sessionState: document.getElementById('sessionState'),
   modelStatus: document.getElementById('modelStatus'),
   videoStatus: document.getElementById('videoStatus'),
+  cfpiTotalBadge: document.getElementById('cfpiTotalBadge'),
   videoHint: document.getElementById('videoHint'),
   rankPill: document.getElementById('rankPill'),
   scoreValue: document.getElementById('scoreValue'),
@@ -30,6 +31,18 @@
   scoreFocusFeedback: document.getElementById('scoreFocusFeedback'),
   scoreFocusCombo: document.getElementById('scoreFocusCombo'),
   scoreFocusWeakest: document.getElementById('scoreFocusWeakest'),
+  scoreCfpiAccuracy: document.getElementById('scoreCfpiAccuracy'),
+  scoreCfpiRhythm: document.getElementById('scoreCfpiRhythm'),
+  scoreCfpiFluency: document.getElementById('scoreCfpiFluency'),
+  scoreCfpiExpression: document.getElementById('scoreCfpiExpression'),
+  cfpiLiveNeck: document.getElementById('cfpiLiveNeck'),
+  cfpiLiveWrist: document.getElementById('cfpiLiveWrist'),
+  cfpiLiveShoulder: document.getElementById('cfpiLiveShoulder'),
+  cfpiLiveHat: document.getElementById('cfpiLiveHat'),
+  cfpiLiveNeckValue: document.getElementById('cfpiLiveNeckValue'),
+  cfpiLiveWristValue: document.getElementById('cfpiLiveWristValue'),
+  cfpiLiveShoulderValue: document.getElementById('cfpiLiveShoulderValue'),
+  cfpiLiveHatValue: document.getElementById('cfpiLiveHatValue'),
   chartMeta: document.getElementById('chartMeta'),
   scoreChartGrid: document.getElementById('scoreChartGrid'),
   scoreChartLine: document.getElementById('scoreChartLine'),
@@ -201,6 +214,20 @@ function mmss(sec) {
 }
 
 function scoreColor(score) {
+  if (score < 70) return 'linear-gradient(90deg, #ff8a7a, #ff5f57)';
+  if (score < 85) return 'linear-gradient(90deg, #ffd76a, #ffb340)';
+  if (score < 92) return 'linear-gradient(90deg, #71e0af, #32c27d)';
+  return 'linear-gradient(90deg, #8b5cff, #1fc8ff)';
+}
+
+function cfpiTone(score) {
+  if (score < 70) return 'error';
+  if (score < 85) return 'warn';
+  if (score < 92) return 'ok';
+  return 'neutral';
+}
+
+function culturalBarColor(score) {
   if (score < 70) return 'linear-gradient(90deg, #ff8a7a, #ff5f57)';
   if (score < 85) return 'linear-gradient(90deg, #ffd76a, #ffb340)';
   if (score < 92) return 'linear-gradient(90deg, #71e0af, #32c27d)';
@@ -716,6 +743,9 @@ function applyStateSnapshot(payload) {
   const combo = Number(snap.combo || 0);
   const bestCombo = Number(snap.best_combo || 0);
   const metrics = snap.vmc_metrics || {};
+  const cfpi = snap.cfpi || {};
+  const cfpiDimensions = cfpi.dimensions || {};
+  const cfpiCultural = cfpi.cultural_features || {};
   const scoreText = Number.isFinite(score) ? String(Math.round(score)) : '0';
 
   stateEls.timerValue.textContent = mmss(Number(snap.elapsed_sec || 0));
@@ -724,6 +754,11 @@ function applyStateSnapshot(payload) {
   stateEls.scoreBar.style.background = scoreColor(score);
   stateEls.rankPill.textContent = rank;
   stateEls.rankPill.className = `pill status-${rankTone(rank)}`;
+  if (stateEls.cfpiTotalBadge) {
+    const cfpiTotal = Number(cfpi.total || score);
+    stateEls.cfpiTotalBadge.textContent = `CFPI ${cfpiTotal.toFixed(1)}`;
+    stateEls.cfpiTotalBadge.className = `pill status-${cfpiTone(cfpiTotal)}`;
+  }
   stateEls.danceValue.textContent = snap.dance_type || '\u672a\u542f\u52a8';
   stateEls.bestCombo.textContent = String(bestCombo);
   stateEls.feedbackValue.textContent = feedback;
@@ -735,6 +770,18 @@ function applyStateSnapshot(payload) {
   stateEls.scoreFocusFeedback.textContent = feedback;
   stateEls.scoreFocusCombo.textContent = String(combo);
   stateEls.scoreFocusWeakest.textContent = weakest;
+  stateEls.scoreCfpiAccuracy.textContent = Number(cfpiDimensions.accuracy || 0).toFixed(1);
+  stateEls.scoreCfpiRhythm.textContent = Number(cfpiDimensions.rhythm || 0).toFixed(1);
+  stateEls.scoreCfpiFluency.textContent = Number(cfpiDimensions.fluency || 0).toFixed(1);
+  stateEls.scoreCfpiExpression.textContent = Number(cfpiDimensions.expression || 0).toFixed(1);
+  const neckScore = Number(cfpiCultural.neck_shift || 0);
+  const wristScore = Number(cfpiCultural.wrist_flip || 0);
+  const shoulderScore = Number(cfpiCultural.shoulder_shimmy || 0);
+  const hatScore = Number(cfpiCultural.hat_hold || 0);
+  if (stateEls.cfpiLiveNeck) { stateEls.cfpiLiveNeck.style.width = `${Math.max(0, Math.min(100, neckScore))}%`; stateEls.cfpiLiveNeck.style.background = culturalBarColor(neckScore); stateEls.cfpiLiveNeckValue.textContent = neckScore.toFixed(1); }
+  if (stateEls.cfpiLiveWrist) { stateEls.cfpiLiveWrist.style.width = `${Math.max(0, Math.min(100, wristScore))}%`; stateEls.cfpiLiveWrist.style.background = culturalBarColor(wristScore); stateEls.cfpiLiveWristValue.textContent = wristScore.toFixed(1); }
+  if (stateEls.cfpiLiveShoulder) { stateEls.cfpiLiveShoulder.style.width = `${Math.max(0, Math.min(100, shoulderScore))}%`; stateEls.cfpiLiveShoulder.style.background = culturalBarColor(shoulderScore); stateEls.cfpiLiveShoulderValue.textContent = shoulderScore.toFixed(1); }
+  if (stateEls.cfpiLiveHat) { stateEls.cfpiLiveHat.style.width = `${Math.max(0, Math.min(100, hatScore))}%`; stateEls.cfpiLiveHat.style.background = culturalBarColor(hatScore); stateEls.cfpiLiveHatValue.textContent = hatScore.toFixed(1); }
   stateEls.userValue.textContent = `${snap.current_user || '\u6e38\u5ba2'} / ${snap.current_role || '\u5b66\u751f'}`;
   stateEls.vmcValue.textContent = `${snap.host || '0.0.0.0'}:${snap.port || 39539}`;
   stateEls.recordValue.textContent = record.bvh || record.npy || '\u5c1a\u672a\u751f\u6210';
@@ -864,48 +911,71 @@ function renderHistory(items) {
 function renderHistoryDetail(item) {
   if (!item) {
     stateEls.historyDetail.className = 'history-detail empty';
-    stateEls.historyDetail.innerHTML = '<div class="section-eyebrow">Record Detail</div><h3>\u9009\u62e9\u4e00\u6761\u5386\u53f2\u8bb0\u5f55</h3><p>\u5c55\u5f00\u540e\u53ef\u67e5\u770b\u5e73\u5747\u5206\u3001\u65f6\u957f\u3001\u5173\u8282\u7ea7\u5206\u6790\u548c\u539f\u59cb\u6587\u4ef6\u3002</p><div class="history-preview">\u6682\u65e0\u622a\u56fe\u9884\u89c8</div>';
+    stateEls.historyDetail.innerHTML = '<div class="section-eyebrow">Record Detail</div><h3>选择一条历史记录</h3><p>展开后可查看平均分、CFPI 维度、关节级分析和原始文件。</p><div class="history-preview">暂无截图预览</div>';
     return;
   }
   const score = Number(item.avg_score || 0);
   const gradeTone = item.grade === 'S' ? 'ok' : item.grade === 'A' ? 'neutral' : item.grade === 'B' ? 'warn' : 'error';
-  const preview = item.summary_image_url ? `<div class="history-preview has-image"><img src="${item.summary_image_url}" alt="\u5386\u53f2\u622a\u56fe"></div>` : '<div class="history-preview">\u6682\u65e0\u622a\u56fe\u9884\u89c8</div>';
-  const joints = (item.analysis?.joint_scores || []).map((x) => `<div class="analysis-row"><span>${x.joint}</span><div class="analysis-bar"><i style="width:${Math.max(6, x.score)}%"></i></div><em>${x.score}</em></div>`).join('');
-  const segments = (item.analysis?.segments || []).map((x) => `<div class="analysis-row"><span>\u7247\u6bb5 ${x.index}</span><div class="analysis-bar energy"><i style="width:${Math.max(6, Math.min(100, x.energy * 2000 + 8))}%"></i></div><em>${x.start_sec}-${x.end_sec}s</em></div>`).join('');
+  const preview = item.summary_image_url ? `<div class="history-preview has-image"><img src="${item.summary_image_url}" alt="历史截图"></div>` : '<div class="history-preview">暂无截图预览</div>';
+  const joints = (item.analysis?.joint_scores || []).map((x) => `<div class="analysis-row"><span>${x.joint}</span><div class="analysis-bar"><i style="width:${Math.max(6, Number(x.score) || 0)}%"></i></div><em>${Number(x.score || 0).toFixed(1)}</em></div>`).join('');
+  const segments = (item.analysis?.segments || []).map((x) => `<div class="analysis-row"><span>片段 ${x.index}</span><div class="analysis-bar energy"><i style="width:${Math.max(6, Math.min(100, Number(x.energy || 0) * 2000 + 8))}%"></i></div><em>${x.start_sec}-${x.end_sec}s</em></div>`).join('');
+  const cfpi = item.analysis?.cfpi || {};
+  const cfpiDimensions = Object.entries(cfpi.dimensions || {}).map(([key, value]) => {
+    const labelMap = { accuracy: '动作准确度', rhythm: '节奏同步性', fluency: '流畅度', expression: '表现力' };
+    const label = labelMap[key] || key;
+    return `<div class="analysis-row"><span>${label}</span><div class="analysis-bar cfpi"><i style="width:${Math.max(6, Number(value) || 0)}%"></i></div><em>${Number(value).toFixed(1)}</em></div>`;
+  }).join('');
+  const cfpiComponents = Object.entries(cfpi.components || {}).map(([key, value]) => {
+    const labelMap = { joint_angle: '关键角度', trajectory: '空间轨迹', cultural: '文化动作', beat: '节拍匹配', accent: '重音对齐', smoothness: '转换平滑', stability: '速度稳定', extension: '肢体舒展', expression: '情感强度' };
+    const label = labelMap[key] || key;
+    return `<div class="analysis-row compact"><span>${label}</span><div class="analysis-bar cfpi-sub"><i style="width:${Math.max(6, Number(value) || 0)}%"></i></div><em>${Number(value).toFixed(1)}</em></div>`;
+  }).join('');
+  const culturalFeatures = Object.entries(cfpi.cultural_features || {}).map(([key, value]) => {
+    const labelMap = { neck_shift: '移颈', wrist_flip: '翻腕', shoulder_shimmy: '抖肩', hat_hold: '托帽' };
+    const label = labelMap[key] || key;
+    return `<div class="analysis-row compact"><span>${label}</span><div class="analysis-bar cultural"><i style="width:${Math.max(6, Number(value) || 0)}%"></i></div><em>${Number(value).toFixed(1)}</em></div>`;
+  }).join('');
   stateEls.historyDetail.className = 'history-detail';
   stateEls.historyDetail.innerHTML = `
-    <div class="detail-header"><div><div class="section-eyebrow">Record Detail</div><h3>${item.dance_type} / ${item.grade}</h3><p>${item.created_at}</p></div><div class="detail-badges"><span class="pill status-${gradeTone}">${item.grade} \u7b49\u7ea7</span><span class="pill status-neutral">\u5747\u5206 ${score.toFixed(1)}</span></div></div>
+    <div class="detail-header"><div><div class="section-eyebrow">Record Detail</div><h3>${item.dance_type} / ${item.grade}</h3><p>${item.created_at}</p></div><div class="detail-badges"><span class="pill status-${gradeTone}">${item.grade} 等级</span><span class="pill status-neutral">均分 ${score.toFixed(1)}</span><span class="pill status-ok">CFPI ${Number(cfpi.total || score).toFixed(1)}</span></div></div>
     ${preview}
     <div class="history-detail-grid">
-      <div class="mini-card"><span class="meta-label"><span class="meta-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M12 4v16"></path><path d="M7 9h10"></path><path d="M9 15h6"></path></svg></span>\u5e73\u5747\u5206</span><strong>${score.toFixed(1)}</strong></div>
-      <div class="mini-card"><span class="meta-label"><span class="meta-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M13 3 6 13h5l-1 8 8-11h-5l0-7z"></path></svg></span>\u6700\u9ad8\u8fde\u51fb</span><strong>${item.best_combo || 0}</strong></div>
-      <div class="mini-card"><span class="meta-label"><span class="meta-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M12 5v7l4 2"></path><circle cx="12" cy="12" r="8"></circle></svg></span>\u821e\u8e48\u65f6\u957f</span><strong>${mmss(item.duration_sec || 0)}</strong></div>
-      <div class="mini-card"><span class="meta-label"><span class="meta-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="7"></circle><path d="M12 9v3l2 2"></path></svg></span>\u6700\u5f31\u5173\u8282</span><strong>${item.analysis?.worst_joint || '\u672a\u77e5'}</strong></div>
+      <div class="mini-card"><span class="meta-label"><span class="meta-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M12 4v16"></path><path d="M7 9h10"></path><path d="M9 15h6"></path></svg></span>平均分</span><strong>${score.toFixed(1)}</strong></div>
+      <div class="mini-card"><span class="meta-label"><span class="meta-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M13 3 6 13h5l-1 8 8-11h-5l0-7z"></path></svg></span>最高连击</span><strong>${item.best_combo || 0}</strong></div>
+      <div class="mini-card"><span class="meta-label"><span class="meta-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M12 5v7l4 2"></path><circle cx="12" cy="12" r="8"></circle></svg></span>舞蹈时长</span><strong>${mmss(item.duration_sec || 0)}</strong></div>
+      <div class="mini-card"><span class="meta-label"><span class="meta-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="7"></circle><path d="M12 9v3l2 2"></path></svg></span>最弱关节</span><strong>${item.analysis?.worst_joint || '未知'}</strong></div>
     </div>
-    <div class="mini-card report-card" style="margin-top:12px;"><span class="meta-label"><span class="meta-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M5 8h14"></path><path d="M5 12h10"></path><path d="M5 16h8"></path></svg></span>\u8bc4\u4f30\u62a5\u544a</span><strong>${item.summary_report || item.record_text || '\u6682\u65e0\u8bf4\u660e'}</strong></div>
-    <div class="section-eyebrow" style="margin-top:16px;">\u5173\u8282\u7ea7\u5206\u6790</div>
-    <div class="analysis-grid">${joints || '<div class="mini-card"><span>\u6682\u65e0</span><strong>\u65e0\u53ef\u7528\u5206\u6790</strong></div>'}</div>
-    <div class="section-eyebrow" style="margin-top:16px;">\u65f6\u95f4\u7247\u6bb5</div>
-    <div class="analysis-grid">${segments || '<div class="mini-card"><span>\u6682\u65e0</span><strong>\u65e0\u53ef\u7528\u5206\u6790</strong></div>'}</div>
+    <div class="mini-card report-card" style="margin-top:12px;"><span class="meta-label"><span class="meta-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M5 8h14"></path><path d="M5 12h10"></path><path d="M5 16h8"></path></svg></span>评估报告</span><strong>${item.summary_report || item.record_text || '暂无说明'}</strong></div>
+    <div class="section-eyebrow" style="margin-top:16px;">CFPI 四维指标</div>
+    <div class="analysis-grid">${cfpiDimensions || '<div class="mini-card"><span>暂无</span><strong>无 CFPI 维度数据</strong></div>'}</div>
+    <div class="section-eyebrow" style="margin-top:16px;">CFPI 分项指标</div>
+    <div class="analysis-grid">${cfpiComponents || '<div class="mini-card"><span>暂无</span><strong>无 CFPI 分项数据</strong></div>'}</div>
+    <div class="section-eyebrow" style="margin-top:16px;">文化特征完成度</div>
+    <div class="analysis-grid">${culturalFeatures || '<div class="mini-card"><span>暂无</span><strong>无文化特征数据</strong></div>'}</div>
+    <div class="section-eyebrow" style="margin-top:16px;">关节级分析</div>
+    <div class="analysis-grid">${joints || '<div class="mini-card"><span>暂无</span><strong>无可用分析</strong></div>'}</div>
+    <div class="section-eyebrow" style="margin-top:16px;">时间片段</div>
+    <div class="analysis-grid">${segments || '<div class="mini-card"><span>暂无</span><strong>无可用分析</strong></div>'}</div>
     <div class="action-row">
-      <button id="replayHistoryBtn" class="btn secondary"><span class="btn-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M20 12a8 8 0 0 1-13.7 5.7"></path><path d="M4 12A8 8 0 0 1 17.7 6.3"></path><path d="M6 17H3v-3"></path></svg></span><span class="btn-label">\u91cd\u65b0\u8bc4\u4f30</span></button>
-      <button id="deleteHistoryBtn" class="btn secondary"><span class="btn-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M8 7h8"></path><path d="M6 7h12"></path><path d="M9 7V5h6v2"></path><path d="m8 10 1 8"></path><path d="m16 10-1 8"></path></svg></span><span class="btn-label">\u5220\u9664\u8bb0\u5f55</span></button>
-      <a class="btn secondary link-btn ${item.npy_url ? '' : 'disabled'}" ${item.npy_url ? `href="${item.npy_url}" target="_blank"` : ''}><span class="btn-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M5 8h14"></path><path d="M5 12h10"></path><path d="M5 16h8"></path></svg></span><span class="btn-label">\u6253\u5f00 NPY</span></a>
-      <a class="btn secondary link-btn ${item.bvh_url ? '' : 'disabled'}" ${item.bvh_url ? `href="${item.bvh_url}" target="_blank"` : ''}><span class="btn-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><rect x="5" y="6" width="14" height="12" rx="3"></rect><path d="M10 10h4"></path><path d="M10 14h4"></path></svg></span><span class="btn-label">\u6253\u5f00 BVH</span></a>
-      <a class="btn secondary link-btn ${item.source_url ? '' : 'disabled'}" ${item.source_url ? `href="${item.source_url}" target="_blank"` : ''}><span class="btn-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M12 4v10"></path><path d="m8 10 4 4 4-4"></path><path d="M5 18h14"></path></svg></span><span class="btn-label">\u6253\u5f00\u6e90\u6587\u4ef6</span></a>
-      <button id="exportHistoryBtn" class="btn secondary"><span class="btn-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M12 4v10"></path><path d="m8 10 4 4 4-4"></path><path d="M5 18h14"></path></svg></span><span class="btn-label">\u5bfc\u51fa\u6458\u8981</span></button>
+      <button id="replayHistoryBtn" class="btn secondary"><span class="btn-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M20 12a8 8 0 0 1-13.7 5.7"></path><path d="M4 12A8 8 0 0 1 17.7 6.3"></path><path d="M6 17H3v-3"></path></svg></span><span class="btn-label">重新评估</span></button>
+      <button id="deleteHistoryBtn" class="btn secondary"><span class="btn-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M8 7h8"></path><path d="M6 7h12"></path><path d="M9 7V5h6v2"></path><path d="m8 10 1 8"></path><path d="m16 10-1 8"></path></svg></span><span class="btn-label">删除记录</span></button>
+      <a class="btn secondary link-btn ${item.npy_url ? '' : 'disabled'}" ${item.npy_url ? `href="${item.npy_url}" target="_blank"` : ''}><span class="btn-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M5 8h14"></path><path d="M5 12h10"></path><path d="M5 16h8"></path></svg></span><span class="btn-label">打开 NPY</span></a>
+      <a class="btn secondary link-btn ${item.bvh_url ? '' : 'disabled'}" ${item.bvh_url ? `href="${item.bvh_url}" target="_blank"` : ''}><span class="btn-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><rect x="5" y="6" width="14" height="12" rx="3"></rect><path d="M10 10h4"></path><path d="M10 14h4"></path></svg></span><span class="btn-label">打开 BVH</span></a>
+      <a class="btn secondary link-btn ${item.source_url ? '' : 'disabled'}" ${item.source_url ? `href="${item.source_url}" target="_blank"` : ''}><span class="btn-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M12 4v10"></path><path d="m8 10 4 4 4-4"></path><path d="M5 18h14"></path></svg></span><span class="btn-label">打开源文件</span></a>
+      <button id="exportHistoryBtn" class="btn secondary"><span class="btn-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M12 4v10"></path><path d="m8 10 4 4 4-4"></path><path d="M5 18h14"></path></svg></span><span class="btn-label">导出摘要</span></button>
     </div>`;
-  document.getElementById('replayHistoryBtn').onclick = async () => toast((await postJson('/api/history/replay', { id: item.id })).message || '\u5df2\u63d0\u4ea4\u91cd\u8bc4');
-  document.getElementById('deleteHistoryBtn').onclick = async () => { toast((await postJson('/api/history/delete', { id: item.id })).message || '\u5df2\u5220\u9664'); activeHistoryId = null; };
+  document.getElementById('replayHistoryBtn').onclick = async () => toast((await postJson('/api/history/replay', { id: item.id })).message || '已提交重评');
+  document.getElementById('deleteHistoryBtn').onclick = async () => { toast((await postJson('/api/history/delete', { id: item.id })).message || '已删除'); activeHistoryId = null; };
   document.getElementById('exportHistoryBtn').onclick = () => {
     const lines = [
-      `\u821e\u79cd: ${item.dance_type}`,
-      `\u7b49\u7ea7: ${item.grade}`,
-      `\u5e73\u5747\u5206: ${score.toFixed(1)}`,
-      `\u6700\u5f31\u5173\u8282: ${item.analysis?.worst_joint || '\u672a\u77e5'}`,
-      `\u62a5\u544a: ${item.summary_report || item.record_text || '\u6682\u65e0\u8bf4\u660e'}`,
+      `舞种: ${item.dance_type}`,
+      `等级: ${item.grade}`,
+      `平均分: ${score.toFixed(1)}`,
+      `CFPI 主评分: ${Number(cfpi.total || score).toFixed(1)}`,
+      `最弱关节: ${item.analysis?.worst_joint || '未知'}`,
+      `报告: ${item.summary_report || item.record_text || '暂无说明'}`,
     ];
-    const blob = new Blob([lines.join('\\n')], { type: 'text/plain;charset=utf-8' });
+    const blob = new Blob([lines.join('\n')], { type: 'text/plain;charset=utf-8' });
     const a = document.createElement('a');
     a.href = URL.createObjectURL(blob);
     a.download = `history_${item.id}.txt`;
