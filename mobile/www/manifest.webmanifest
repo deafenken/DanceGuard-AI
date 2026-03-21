@@ -1,0 +1,9 @@
+{
+  "name": "DanceGuard Mobile",
+  "short_name": "DanceGuard",
+  "start_url": "/mobile/",
+  "display": "standalone",
+  "background_color": "#0b1220",
+  "theme_color": "#0071e3",
+  "description": "民族舞智能评估系统手机端"
+}

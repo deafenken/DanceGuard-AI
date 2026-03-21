@@ -1,0 +1,215 @@
+﻿<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#0b1220">
+  <title>DanceGuard Mobile</title>
+  <link rel="manifest" href="./manifest.webmanifest">
+  <link rel="stylesheet" href="./styles.css?v=20260321m2">
+</head>
+<body>
+  <div class="mobile-shell">
+    <header class="topbar">
+      <div>
+        <div class="eyebrow">DanceGuard Mobile</div>
+        <h1>民族舞智能评估</h1>
+      </div>
+      <div id="mobileSessionState" class="pill neutral">待机</div>
+    </header>
+
+    <main class="content">
+      <section id="tab-dashboard" class="tab-page active">
+        <div class="card config-card">
+          <div class="card-head">
+            <h2>连接配置</h2>
+            <button id="saveBackendBtn" class="mini-btn">保存</button>
+          </div>
+          <label class="field">
+            <span>后端地址</span>
+            <input id="backendBaseUrl" placeholder="默认同源，例如 http://192.168.1.10:8000">
+          </label>
+          <div class="grid two">
+            <label class="field">
+              <span>舞种</span>
+              <select id="danceType">
+                <option>黑走马 (Kara Jorga)</option>
+                <option>木卡姆 (Muqam)</option>
+              </select>
+            </label>
+            <label class="field">
+              <span>视频设备</span>
+              <select id="cameraSelect"></select>
+            </label>
+          </div>
+          <div class="grid two">
+            <label class="field">
+              <span>VMC Host</span>
+              <input id="vmcHost" value="0.0.0.0">
+            </label>
+            <label class="field">
+              <span>VMC Port</span>
+              <input id="vmcPort" value="39539">
+            </label>
+          </div>
+          <div class="action-row">
+            <button id="refreshVideoBtn" class="btn secondary">刷新设备</button>
+            <button id="startBtn" class="btn primary">开始评估</button>
+            <button id="stopBtn" class="btn secondary">停止评估</button>
+          </div>
+        </div>
+
+        <div class="card stage-card">
+          <div class="stage-top">
+            <div class="badge live"><span class="dot"></span><span id="videoPrimaryLabel">Live Capture</span></div>
+            <div id="videoPrimarySubtag" class="badge dark">OBS / 云景虚拟摄像头</div>
+          </div>
+          <div id="videoStage" class="mobile-stage">
+            <div id="livePane" class="stage-pane primary-pane">
+              <video id="liveVideo" autoplay playsinline muted></video>
+            </div>
+            <div id="standardPane" class="stage-pane pip-pane">
+              <video id="standardVideo" loop playsinline muted preload="auto"></video>
+              <div id="standardEmpty" class="stage-empty">未配置标准视频</div>
+              <div class="pip-controls">
+                <button id="standardPlayBtn" class="icon-btn">播放</button>
+                <button id="standardAudioBtn" class="icon-btn">伴奏</button>
+              </div>
+            </div>
+          </div>
+          <div class="stage-actions">
+            <button id="swapVideoBtn" class="mini-btn">交换画面</button>
+            <button id="fullscreenBtn" class="mini-btn">全屏</button>
+          </div>
+          <div class="progress-wrap">
+            <input id="standardSeek" type="range" min="0" max="1000" value="0">
+            <div class="time-row"><span id="standardCurrentTime">00:00</span><span id="standardDuration">00:00</span></div>
+          </div>
+        </div>
+
+        <div class="card score-card">
+          <div class="card-head">
+            <h2>实时评分</h2>
+            <div id="cfpiTotalBadge" class="pill neutral">CFPI 0.0</div>
+          </div>
+          <div class="score-line">
+            <div id="scoreValue" class="score-value">0</div>
+            <div class="timer-box">
+              <span>计时</span>
+              <strong id="timerValue">00:00</strong>
+            </div>
+          </div>
+          <div class="progress"><div id="scoreBar"></div></div>
+          <div class="grid two metrics-grid">
+            <div class="metric"><span>判定</span><strong id="scoreFocusRank">IDLE</strong></div>
+            <div class="metric"><span>反馈</span><strong id="feedbackValue">等待开始</strong></div>
+            <div class="metric"><span>最高连击</span><strong id="bestCombo">0</strong></div>
+            <div class="metric"><span>最弱关节</span><strong id="weakestJointValue">--</strong></div>
+          </div>
+        </div>
+
+        <div class="card cfpi-card">
+          <div class="card-head"><h2>CFPI 四维</h2></div>
+          <div class="grid two metrics-grid">
+            <div class="metric"><span>动作准确度</span><strong id="scoreCfpiAccuracy">0.0</strong></div>
+            <div class="metric"><span>节奏同步性</span><strong id="scoreCfpiRhythm">0.0</strong></div>
+            <div class="metric"><span>流畅度</span><strong id="scoreCfpiFluency">0.0</strong></div>
+            <div class="metric"><span>表现力</span><strong id="scoreCfpiExpression">0.0</strong></div>
+          </div>
+          <div class="cultural-list">
+            <div class="culture-row"><label>移颈</label><div class="bar"><i id="cfpiLiveNeck"></i></div><span id="cfpiLiveNeckValue">0.0</span></div>
+            <div class="culture-row"><label>翻腕</label><div class="bar"><i id="cfpiLiveWrist"></i></div><span id="cfpiLiveWristValue">0.0</span></div>
+            <div class="culture-row"><label>抖肩</label><div class="bar"><i id="cfpiLiveShoulder"></i></div><span id="cfpiLiveShoulderValue">0.0</span></div>
+            <div class="culture-row"><label>托帽</label><div class="bar"><i id="cfpiLiveHat"></i></div><span id="cfpiLiveHatValue">0.0</span></div>
+          </div>
+        </div>
+
+        <div class="card feed-card">
+          <div class="card-head"><h2>实时反馈</h2><div id="videoStatus" class="pill neutral">视频待连接</div></div>
+          <div id="feedList" class="feed-list"></div>
+        </div>
+      </section>
+
+      <section id="tab-history" class="tab-page">
+        <div class="card">
+          <div class="card-head"><h2>历史记录</h2></div>
+          <div class="grid three">
+            <label class="field"><span>舞种</span><select id="historyDanceFilter"><option value="">全部</option><option>黑走马 (Kara Jorga)</option><option>木卡姆 (Muqam)</option></select></label>
+            <label class="field"><span>等级</span><select id="historyGradeFilter"><option value="">全部</option><option>S</option><option>A</option><option>B</option><option>C</option></select></label>
+            <label class="field"><span>关键词</span><input id="historyKeyword" placeholder="反馈、日期、舞种"></label>
+          </div>
+          <div class="action-row"><button id="historyFilterBtn" class="btn secondary">筛选</button></div>
+          <div id="historyList" class="history-list"></div>
+          <div id="historyDetail" class="history-detail empty">选择一条历史记录查看详情</div>
+        </div>
+      </section>
+
+      <section id="tab-import" class="tab-page">
+        <div class="card">
+          <div class="card-head"><h2>离线导入</h2></div>
+          <form id="importForm" class="stack-form">
+            <label class="field"><span>导入舞种</span><select id="importDanceType"><option>黑走马 (Kara Jorga)</option><option>木卡姆 (Muqam)</option></select></label>
+            <label class="field"><span>动作文件</span><input id="importFile" type="file" accept=".npy,.bvh,.mp4,.avi"></label>
+            <button class="btn primary" type="submit">上传并处理</button>
+          </form>
+          <div id="importResult" class="result-box">等待导入</div>
+          <div id="importList" class="history-list"></div>
+        </div>
+      </section>
+
+      <section id="tab-device" class="tab-page">
+        <div class="card">
+          <div class="card-head"><h2>设备与模型</h2></div>
+          <div class="grid two metrics-grid">
+            <div class="metric"><span>浏览器权限</span><strong id="permissionValue">待检测</strong></div>
+            <div class="metric"><span>当前视频设备</span><strong id="activeCameraValue">未选择</strong></div>
+            <div class="metric"><span>设备数量</span><strong id="cameraCountValue">0</strong></div>
+            <div class="metric"><span>VMC 帧率</span><strong id="vmcFpsValue">0.0</strong></div>
+            <div class="metric"><span>骨骼数量</span><strong id="vmcBoneCountValue">0</strong></div>
+            <div class="metric"><span>UDP 包计数</span><strong id="vmcPacketCountValue">0</strong></div>
+          </div>
+          <div id="serverDeviceSummary" class="result-box">后端接收状态待更新</div>
+          <div id="deviceList" class="history-list"></div>
+          <div id="modelList" class="history-list"></div>
+        </div>
+      </section>
+
+      <section id="tab-account" class="tab-page">
+        <div class="card">
+          <div class="card-head"><h2>账号中心</h2><div id="accountState" class="pill neutral">游客 / 学生</div></div>
+          <div class="grid two">
+            <div class="stack-form">
+              <label class="field"><span>用户名</span><input id="loginUsername"></label>
+              <label class="field"><span>密码</span><input id="loginPassword" type="password"></label>
+              <div class="action-row">
+                <button id="loginBtn" class="btn primary" type="button">登录</button>
+                <button id="logoutBtn" class="btn secondary" type="button">退出</button>
+              </div>
+            </div>
+            <div class="stack-form">
+              <label class="field"><span>新用户名</span><input id="registerUsername"></label>
+              <label class="field"><span>新密码</span><input id="registerPassword" type="password"></label>
+              <label class="field"><span>角色</span><select id="registerRole"><option>学生</option><option>教师</option><option>管理员</option></select></label>
+              <div class="action-row">
+                <button id="registerBtn" class="btn primary" type="button">注册</button>
+                <button id="resetPasswordBtn" class="btn secondary" type="button">重置密码</button>
+              </div>
+            </div>
+          </div>
+          <div id="userList" class="history-list"></div>
+        </div>
+      </section>
+    </main>
+
+    <nav class="bottom-nav">
+      <button class="nav-btn active" data-tab="dashboard">首页</button>
+      <button class="nav-btn" data-tab="history">历史</button>
+      <button class="nav-btn" data-tab="import">导入</button>
+      <button class="nav-btn" data-tab="device">设备</button>
+      <button class="nav-btn" data-tab="account">账号</button>
+    </nav>
+  </div>
+
+  <script src="./app.js?v=20260321m2"></script>
+</body>
+</html>

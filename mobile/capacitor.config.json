@@ -1,0 +1,10 @@
+{
+  "appId": "ai.danceguard.mobile",
+  "appName": "DanceGuard Mobile",
+  "webDir": "www",
+  "bundledWebRuntime": false,
+  "server": {
+    "cleartext": true,
+    "androidScheme": "https"
+  }
+}

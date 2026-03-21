@@ -1,0 +1,18 @@
+{
+  "name": "danceguard-mobile",
+  "version": "0.1.0",
+  "private": true,
+  "description": "DanceGuard AI 手机端前端，可通过 Capacitor 打包为 APK。",
+  "scripts": {
+    "sync": "npx cap sync android",
+    "open:android": "npx cap open android",
+    "copy": "npx cap copy android"
+  },
+  "dependencies": {
+    "@capacitor/android": "^7.0.0",
+    "@capacitor/app": "^7.0.0",
+    "@capacitor/core": "^7.0.0",
+    "@capacitor/filesystem": "^7.0.0",
+    "@capacitor/status-bar": "^7.0.0"
+  }
+}

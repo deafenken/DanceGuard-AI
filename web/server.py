@@ -18,6 +18,7 @@ from app.store import GUEST_USER, STUDENT_ROLE, LocalStore
 
 ROOT = Path(__file__).resolve().parent
 STATIC_DIR = ROOT / "static"
+MOBILE_STATIC_DIR = Path("mobile") / "www"
 ASSETS_DIR = Path("assets")
 IMPORTS_DIR = ASSETS_DIR / "imports"
 WEIGHTS_DIR = ASSETS_DIR / "weights"
@@ -212,7 +213,15 @@ class SessionManager:
         if self.running:
             return {"ok": False, "message": "会话已在运行中"}
         self.reset_state()
-        self.state.update({"active": True, "dance_type": dance_type, "host": host, "port": port, "started_at": time.time()})
+        self.state.update({
+            "active": True,
+            "dance_type": dance_type,
+            "host": host,
+            "port": port,
+            "started_at": time.time(),
+            "feedback": "已启动，等待 VMC 骨骼流",
+            "rank": "READY",
+        })
         weight_path = DANCE_MODELS.get(dance_type, DANCE_MODELS["黑走马 (Kara Jorga)"])["weight"]
         self.receiver = VmcReceiver(host=host, port=port)
         self.recorder = MocapRecorder(dance_type)
@@ -339,6 +348,7 @@ class WebHandler(BaseHTTPRequestHandler):
         elif file_path.suffix in {".png", ".jpg", ".jpeg", ".webp"}: mime = f"image/{file_path.suffix[1:]}"
         elif file_path.suffix == ".wav": mime = "audio/wav"
         elif file_path.suffix == ".svg": mime = "image/svg+xml"
+        elif file_path.suffix == ".webmanifest": mime = "application/manifest+json; charset=utf-8"
         elif file_path.suffix == ".mp4": mime = "video/mp4"
         elif file_path.suffix == ".webm": mime = "video/webm"
         elif file_path.suffix == ".mov": mime = "video/quicktime"
@@ -449,6 +459,8 @@ class WebHandler(BaseHTTPRequestHandler):
     def do_GET(self):
         parsed = urlparse(self.path)
         if parsed.path == "/": return self._serve_file(STATIC_DIR, "index.html")
+        if parsed.path in {"/mobile", "/mobile/"}: return self._serve_file(MOBILE_STATIC_DIR, "index.html")
+        if parsed.path.startswith("/mobile/"): return self._serve_file(MOBILE_STATIC_DIR, parsed.path.replace("/mobile/", "", 1))
         if parsed.path.startswith("/static/"): return self._serve_file(STATIC_DIR, parsed.path.replace("/static/", "", 1))
         if parsed.path.startswith("/assets/"): return self._serve_file(ASSETS_DIR, parsed.path.replace("/assets/", "", 1))
         if parsed.path == "/api/stream": return self._stream_events()
@@ -535,6 +547,7 @@ def run_server(host: str = "127.0.0.1", port: int = 8000):
     finally:
         SESSION.stop()
         httpd.server_close()
+
 
 
 
