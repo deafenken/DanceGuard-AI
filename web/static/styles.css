@@ -681,6 +681,9 @@ video {
   border: 1px solid rgba(255,255,255,0.14);
   box-shadow: inset 0 1px 0 rgba(255,255,255,0.16);
 }
+.standard-progress-shell.is-scrubbing {
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.16), 0 0 0 2px rgba(31,200,255,0.24);
+}
 .standard-progress-bar {
   width: 0%;
   height: 100%;
@@ -3050,12 +3053,47 @@ textarea {
 .standard-primary-empty {
   position: absolute;
   inset: 0;
+  z-index: 1;
   display: grid;
   place-items: center;
   padding: 24px;
   text-align: center;
   color: rgba(255,255,255,0.92);
   background: linear-gradient(180deg, rgba(17,24,39,0.28), rgba(17,24,39,0.72));
+}
+.standard-primary-controls {
+  position: absolute;
+  left: 18px;
+  right: 18px;
+  bottom: 18px;
+  z-index: 3;
+  display: grid;
+  gap: 8px;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity .24s var(--ease), transform .24s var(--ease);
+  transform: translateY(8px);
+}
+.standard-primary-controls.is-visible {
+  opacity: 1;
+  pointer-events: auto;
+  transform: translateY(0);
+}
+.standard-progress-shell-primary {
+  position: static;
+  left: auto;
+  right: auto;
+  bottom: auto;
+  height: 8px;
+  background: rgba(255,255,255,0.14);
+}
+.standard-timebar-primary {
+  position: static;
+  left: auto;
+  right: auto;
+  bottom: auto;
+  padding: 0 2px;
+  font-size: 12px;
 }
 .video-stage.stage-swapped .standard-primary-surface {
   opacity: 1;

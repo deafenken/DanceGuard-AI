@@ -342,15 +342,62 @@ class WebHandler(BaseHTTPRequestHandler):
         elif file_path.suffix == ".mp4": mime = "video/mp4"
         elif file_path.suffix == ".webm": mime = "video/webm"
         elif file_path.suffix == ".mov": mime = "video/quicktime"
-        body = file_path.read_bytes()
+
+        is_streamable_video = file_path.suffix.lower() in {".mp4", ".webm", ".mov"}
+        file_size = file_path.stat().st_size
+        range_header = self.headers.get("Range", "") if is_streamable_video else ""
+
+        if range_header.startswith("bytes="):
+            try:
+                byte_range = range_header.split("=", 1)[1].strip()
+                start_text, end_text = byte_range.split("-", 1)
+                if start_text == "":
+                    length = int(end_text)
+                    start = max(0, file_size - length)
+                    end = file_size - 1
+                else:
+                    start = int(start_text)
+                    end = int(end_text) if end_text else file_size - 1
+                start = max(0, min(start, file_size - 1))
+                end = max(start, min(end, file_size - 1))
+            except Exception:
+                self.send_error(HTTPStatus.REQUESTED_RANGE_NOT_SATISFIABLE)
+                return
+
+            chunk_size = end - start + 1
+            self.send_response(HTTPStatus.PARTIAL_CONTENT)
+            self.send_header("Content-Type", mime)
+            self.send_header("Accept-Ranges", "bytes")
+            self.send_header("Content-Range", f"bytes {start}-{end}/{file_size}")
+            self.send_header("Content-Length", str(chunk_size))
+            self.send_header("Cache-Control", "no-cache")
+            self.end_headers()
+            with open(file_path, "rb") as f:
+                f.seek(start)
+                remaining = chunk_size
+                while remaining > 0:
+                    block = f.read(min(1024 * 1024, remaining))
+                    if not block:
+                        break
+                    self.wfile.write(block)
+                    remaining -= len(block)
+            return
+
         self.send_response(HTTPStatus.OK)
         self.send_header("Content-Type", mime)
-        self.send_header("Content-Length", str(len(body)))
+        self.send_header("Content-Length", str(file_size))
+        if is_streamable_video:
+            self.send_header("Accept-Ranges", "bytes")
         if file_path.suffix in {".html", ".css", ".js"}:
             self.send_header("Cache-Control", "no-store, no-cache, must-revalidate, max-age=0")
             self.send_header("Pragma", "no-cache")
         self.end_headers()
-        self.wfile.write(body)
+        with open(file_path, "rb") as f:
+            while True:
+                block = f.read(1024 * 1024)
+                if not block:
+                    break
+                self.wfile.write(block)
 
     def _stream_events(self):
         self.send_response(HTTPStatus.OK)

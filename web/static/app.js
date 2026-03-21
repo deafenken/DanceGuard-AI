@@ -93,8 +93,15 @@
   standardPrimarySurface: document.getElementById('standardPrimarySurface'),
   standardPrimaryVideo: document.getElementById('standardPrimaryVideo'),
   standardPrimaryEmpty: document.getElementById('standardPrimaryEmpty'),
+  standardPrimaryControls: document.getElementById('standardPrimaryControls'),
+  standardPrimaryProgressShell: document.getElementById('standardPrimaryProgressShell'),
+  standardPrimaryProgressBar: document.getElementById('standardPrimaryProgressBar'),
+  standardPrimaryCurrentTime: document.getElementById('standardPrimaryCurrentTime'),
+  standardPrimaryDuration: document.getElementById('standardPrimaryDuration'),
   standardReplayBtn: document.getElementById('standardReplayBtn'),
   standardPlayBtn: document.getElementById('standardPlayBtn'),
+  standardAudioBtn: document.getElementById('standardAudioBtn'),
+  standardAudioBtnMini: document.getElementById('standardAudioBtnMini'),
   standardResetBtn: document.getElementById('standardResetBtn'),
   standardProgressBar: document.getElementById('standardProgressBar'),
   standardCurrentTime: document.getElementById('standardCurrentTime'),
@@ -131,12 +138,16 @@ const stageState = {
   swapped: false,
 };
 let standardPlaying = false;
+let standardAudioEnabled = false;
 let audioCtx = null;
 let resizeState = null;
+let standardScrubState = null;
 const PIP_STORAGE_KEYS = {
   normal: 'danceguard:pip-width',
   fullscreen: 'danceguard:pip-width-fullscreen',
 };
+const STANDARD_AUDIO_KEY = 'danceguard:standard-audio-enabled';
+try { standardAudioEnabled = localStorage.getItem(STANDARD_AUDIO_KEY) === '1'; } catch (_) {}
 
 const STANDARD_VIDEO_MAP = {
   karaJorga: '/assets/standard/kara-jorga.mp4',
@@ -158,7 +169,11 @@ const STAGE_BUTTON_ICONS = {
   pause: '<span class="stage-mini-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M9 6v12"></path><path d="M15 6v12"></path></svg></span>',
   replay: '<span class="stage-mini-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M4 12a8 8 0 1 0 2.3-5.7"></path><path d="M4 5v5h5"></path></svg></span>',
   miniSwap: '<span class="stage-mini-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M8 7h9"></path><path d="m14 4 3 3-3 3"></path><path d="M16 17H7"></path><path d="m10 14-3 3 3 3"></path></svg></span>',
-  reset: '<span class="stage-mini-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M6 6h5"></path><path d="M6 6v5"></path><path d="M18 18h-5"></path><path d="M18 18v-5"></path><path d="M9 15 6 18"></path><path d="M15 9l3-3"></path></svg></span>'
+  reset: '<span class="stage-mini-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M6 6h5"></path><path d="M6 6v5"></path><path d="M18 18h-5"></path><path d="M18 18v-5"></path><path d="M9 15 6 18"></path><path d="M15 9l3-3"></path></svg></span>',
+  audioOn: '<span class="stage-btn-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M5 15v-6"></path><path d="M9 9 13 6v12l-4-3H5z"></path><path d="M16 10a4 4 0 0 1 0 4"></path><path d="M18.5 7.5a7 7 0 0 1 0 9"></path></svg></span>',
+  audioOff: '<span class="stage-btn-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M5 15v-6"></path><path d="M9 9 13 6v12l-4-3H5z"></path><path d="m16 9 4 4"></path><path d="m20 9-4 4"></path></svg></span>',
+  miniAudioOn: '<span class="stage-mini-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M5 15v-6"></path><path d="M9 9 13 6v12l-4-3H5z"></path><path d="M16 10a4 4 0 0 1 0 4"></path></svg></span>',
+  miniAudioOff: '<span class="stage-mini-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M5 15v-6"></path><path d="M9 9 13 6v12l-4-3H5z"></path><path d="m16 10 4 4"></path><path d="m20 10-4 4"></path></svg></span>'
 };
 
 function setStageActionButton(button, iconKey, label, active = false) {
@@ -367,15 +382,159 @@ function updateStandardPlayButton() {
   setMiniStageActionButton(stateEls.standardPlayBtn, standardPlaying ? 'pause' : 'play', standardPlaying);
 }
 
-function updateStandardProgress() {
+function updateStandardAudioButtons() {
+  setStageActionButton(stateEls.standardAudioBtn, standardAudioEnabled ? 'audioOn' : 'audioOff', '\u4f34\u594f', standardAudioEnabled);
+  setMiniStageActionButton(stateEls.standardAudioBtnMini, standardAudioEnabled ? 'miniAudioOn' : 'miniAudioOff', standardAudioEnabled);
+}
+
+function applyStandardAudioState() {
   const activeVideo = activeStandardVideo();
-  if (!activeVideo || !stateEls.standardProgressBar) return;
+  const inactiveVideo = inactiveStandardVideo();
+  standardVideoNodes().forEach((video) => {
+    if (!video) return;
+    video.defaultMuted = true;
+    video.volume = 1;
+  });
+  if (inactiveVideo) {
+    inactiveVideo.muted = true;
+    inactiveVideo.defaultMuted = true;
+  }
+  if (activeVideo) {
+    activeVideo.muted = !standardAudioEnabled;
+    activeVideo.defaultMuted = !standardAudioEnabled;
+  }
+  updateStandardAudioButtons();
+}
+
+async function toggleStandardAudio() {
+  standardAudioEnabled = !standardAudioEnabled;
+  try { localStorage.setItem(STANDARD_AUDIO_KEY, standardAudioEnabled ? '1' : '0'); } catch (_) {}
+  applyStandardAudioState();
+  const activeVideo = activeStandardVideo();
+  if (standardAudioEnabled && activeVideo?.src) {
+    try {
+      await activeVideo.play();
+      standardPlaying = !activeVideo.paused;
+    } catch (_) {}
+  }
+  updateStandardPlayButton();
+}
+
+function updateStandardProgress(preview = null) {
+  const activeVideo = activeStandardVideo();
+  if (!activeVideo) return;
   const duration = Number(activeVideo.duration || 0);
-  const current = Number(activeVideo.currentTime || 0);
-  const ratio = duration > 0 ? Math.max(0, Math.min(1, current / duration)) : 0;
-  stateEls.standardProgressBar.style.width = `${(ratio * 100).toFixed(2)}%`;
-  if (stateEls.standardCurrentTime) stateEls.standardCurrentTime.textContent = mmss(Math.floor(current));
-  if (stateEls.standardDuration) stateEls.standardDuration.textContent = mmss(Math.floor(duration));
+  const current = preview && Number.isFinite(preview.current) ? Number(preview.current) : Number(activeVideo.currentTime || 0);
+  const ratio = preview && Number.isFinite(preview.ratio) ? Math.max(0, Math.min(1, Number(preview.ratio))) : (duration > 0 ? Math.max(0, Math.min(1, current / duration)) : 0);
+  const width = `${(ratio * 100).toFixed(2)}%`;
+  if (stateEls.standardProgressBar) stateEls.standardProgressBar.style.width = width;
+  if (stateEls.standardPrimaryProgressBar) stateEls.standardPrimaryProgressBar.style.width = width;
+  const currentText = mmss(Math.floor(current));
+  const durationText = mmss(Math.floor(duration));
+  if (stateEls.standardCurrentTime) stateEls.standardCurrentTime.textContent = currentText;
+  if (stateEls.standardDuration) stateEls.standardDuration.textContent = durationText;
+  if (stateEls.standardPrimaryCurrentTime) stateEls.standardPrimaryCurrentTime.textContent = currentText;
+  if (stateEls.standardPrimaryDuration) stateEls.standardPrimaryDuration.textContent = durationText;
+}
+
+function syncInactiveStandardVideoPosition(force = false) {
+  const activeVideo = activeStandardVideo();
+  const inactiveVideo = inactiveStandardVideo();
+  if (!activeVideo?.src || !inactiveVideo?.src) return;
+  const activeTime = Number(activeVideo.currentTime || 0);
+  const inactiveTime = Number(inactiveVideo.currentTime || 0);
+  if (!force && Math.abs(activeTime - inactiveTime) < 0.22) return;
+  try {
+    inactiveVideo.currentTime = activeTime;
+  } catch (_) {}
+}
+
+function syncInactiveStandardVideoPlayback() {
+  const activeVideo = activeStandardVideo();
+  const inactiveVideo = inactiveStandardVideo();
+  if (!activeVideo?.src || !inactiveVideo?.src) return;
+  inactiveVideo.muted = true;
+  inactiveVideo.defaultMuted = true;
+  inactiveVideo.playbackRate = activeVideo.playbackRate || 1;
+  inactiveVideo.pause();
+}
+
+function seekVideoToTime(video, timeSec) {
+  if (!video) return false;
+  const target = Math.max(0, Math.min(Number(video.duration || 0), Number(timeSec || 0)));
+  if (!Number.isFinite(target)) return false;
+  try {
+    video.currentTime = target;
+    return true;
+  } catch (_) {
+    return false;
+  }
+}
+
+
+function seekStandardVideoByRatio(ratio) {
+  const activeVideo = activeStandardVideo();
+  if (!activeVideo?.duration) return false;
+  const clamped = Math.max(0, Math.min(1, ratio));
+  const targetTime = clamped * activeVideo.duration;
+  const inactiveVideo = inactiveStandardVideo();
+  if (inactiveVideo?.src) {
+    inactiveVideo.pause();
+    inactiveVideo.playbackRate = Number(activeVideo.playbackRate || 1);
+  }
+  const ok = seekVideoToTime(activeVideo, targetTime);
+  if (!ok) return false;
+  updateStandardProgress();
+  return true;
+}
+
+function progressRatioFromEvent(ev, shell) {
+  const rect = shell.getBoundingClientRect();
+  if (!rect.width) return 0;
+  return Math.max(0, Math.min(1, (ev.clientX - rect.left) / rect.width));
+}
+
+function beginStandardScrub(ev) {
+  const shell = ev.target.closest('#standardPrimaryProgressShell, .standard-progress-shell');
+  if (!shell) return;
+  ev.preventDefault();
+  ev.stopPropagation();
+  const activeVideo = activeStandardVideo();
+  if (!activeVideo?.duration) return;
+  standardScrubState = {
+    shell,
+    wasPlaying: !activeVideo.paused,
+    activeVideo,
+  };
+  activeVideo.pause();
+  const ratio = progressRatioFromEvent(ev, shell);
+  const previewTime = ratio * Number(activeVideo.duration || 0);
+  updateStandardProgress({ ratio, current: previewTime });
+  shell.classList.add('is-scrubbing');
+  document.body.style.userSelect = 'none';
+}
+
+function updateStandardScrub(ev) {
+  if (!standardScrubState) return;
+  const ratio = progressRatioFromEvent(ev, standardScrubState.shell);
+  const previewTime = ratio * Number(standardScrubState.activeVideo.duration || 0);
+  standardScrubState.ratio = ratio;
+  standardScrubState.previewTime = previewTime;
+  updateStandardProgress({ ratio, current: previewTime });
+}
+
+async function endStandardScrub() {
+  if (!standardScrubState) return;
+  const state = standardScrubState;
+  standardScrubState = null;
+  state.shell?.classList.remove('is-scrubbing');
+  document.body.style.userSelect = '';
+  const ratio = Number.isFinite(state.ratio) ? state.ratio : (Number(state.activeVideo.currentTime || 0) / Math.max(1, Number(state.activeVideo.duration || 1)));
+  const ok = seekStandardVideoByRatio(ratio);
+  if (ok && state.wasPlaying) {
+    try { await state.activeVideo.play(); } catch (_) {}
+  }
+  updateStandardProgress();
 }
 
 function isVideoStageFullscreen() {
@@ -401,6 +560,8 @@ function syncVideoStageState() {
   stateEls.fullscreenHint?.classList.toggle('hidden', !state.fullscreen);
   updateSwapButtons(state);
   updatePrimaryStageMeta(state);
+  applyStandardAudioState();
+  stateEls.standardPrimaryControls?.classList.toggle('is-visible', state.swapped);
   if (stateEls.videoDebug && stateEls.videoStage) {
     const normalWidth = getComputedStyle(stateEls.videoStage).getPropertyValue('--pip-width').trim() || '--';
     const fullscreenWidth = getComputedStyle(stateEls.videoStage).getPropertyValue('--pip-width-fullscreen').trim() || '--';
@@ -539,6 +700,7 @@ async function toggleVideoSwap() {
     }
   }
   syncVideoStageState();
+  updateStandardProgress();
   if (isVideoStageFullscreen() && stateEls.videoStage) {
     void stateEls.videoStage.offsetWidth;
     requestAnimationFrame(async () => {
@@ -546,6 +708,7 @@ async function toggleVideoSwap() {
         await mirrorStandardVideoState(activeStandardVideo(), sourceSnapshot);
       }
       syncVideoStageState();
+      updateStandardProgress();
     });
   }
   playSwapFlash();
@@ -639,6 +802,7 @@ async function prepareStandardVideo() {
     });
     await Promise.all(videos.map((video) => waitForVideoReady(video)));
     standardPlaying = false;
+    applyStandardAudioState();
     updateStandardPlayButton();
     updateStandardProgress();
     return true;
@@ -654,9 +818,10 @@ async function playStandardVideo() {
   try {
     const ready = await waitForVideoReady(activeVideo);
     if (!ready) return false;
+    applyStandardAudioState();
     const otherVideo = inactiveStandardVideo();
     if (otherVideo?.src) {
-      try { otherVideo.currentTime = activeVideo.currentTime || 0; } catch (_) {}
+      otherVideo.pause();
     }
     await activeVideo.play();
     standardPlaying = true;
@@ -677,6 +842,7 @@ async function toggleStandardPlayback() {
     await playStandardVideo();
   } else {
     activeVideo.pause();
+    inactiveStandardVideo()?.pause();
     standardPlaying = false;
     updateStandardPlayButton();
   }
@@ -685,7 +851,12 @@ async function toggleStandardPlayback() {
 async function replayStandardVideo() {
   const activeVideo = activeStandardVideo();
   if (!activeVideo?.src) return;
-  activeVideo.currentTime = 0;
+  seekVideoToTime(activeVideo, 0);
+  const otherVideo = inactiveStandardVideo();
+  if (otherVideo?.src) {
+    try { otherVideo.currentTime = 0; } catch (_) {}
+    otherVideo.pause();
+  }
   updateStandardProgress();
   await playStandardVideo();
 }
@@ -1095,24 +1266,20 @@ stateEls.swapVideoBtnMini?.addEventListener('click', toggleVideoSwap);
 stateEls.fullscreenBtn?.addEventListener('click', toggleVideoFullscreen);
 stateEls.standardReplayBtn?.addEventListener('click', replayStandardVideo);
 stateEls.standardPlayBtn?.addEventListener('click', toggleStandardPlayback);
+stateEls.standardAudioBtn?.addEventListener('click', toggleStandardAudio);
+stateEls.standardAudioBtnMini?.addEventListener('click', toggleStandardAudio);
 stateEls.standardResetBtn?.addEventListener('click', resetPipSize);
 document.addEventListener('fullscreenchange', () => { endPipResize(); clearPipStateFlags(); stateEls.pipSizeHint?.classList.add('hidden'); stateEls.pipBoundHint?.classList.add('hidden'); ensurePipWidthForCurrentMode(); syncVideoStageState(); });
 standardVideoNodes().forEach((video) => {
-  video.addEventListener("loadeddata", () => { hideStandardPlaceholder(); standardPlaying = false; updateStandardPlayButton(); updateStandardProgress(); });
-  video.addEventListener("timeupdate", () => { if (video === activeStandardVideo()) updateStandardProgress(); });
+  video.addEventListener("loadeddata", () => { hideStandardPlaceholder(); if (video === activeStandardVideo()) { standardPlaying = !video.paused; updateStandardProgress(); } updateStandardPlayButton(); });
+  video.addEventListener("timeupdate", () => { if (video === activeStandardVideo()) { updateStandardProgress(); } });
   video.addEventListener("ended", () => { if (video === activeStandardVideo()) { standardPlaying = false; updateStandardPlayButton(); updateStandardProgress(); } });
   video.addEventListener("pause", () => { if (video === activeStandardVideo()) { standardPlaying = false; updateStandardPlayButton(); } });
-  video.addEventListener("play", () => { if (video === activeStandardVideo()) { standardPlaying = true; updateStandardPlayButton(); } });
+  video.addEventListener("play", () => { if (video === activeStandardVideo()) { standardPlaying = true; inactiveStandardVideo()?.pause(); updateStandardPlayButton(); } });
   video.addEventListener("error", () => showStandardPlaceholder(`未找到标准视频：${(video?.dataset?.src || "").split("/").pop() || "demo.mp4"}`));
 });
-stateEls.standardProgressBar?.parentElement?.addEventListener("click", (ev) => {
-  const activeVideo = activeStandardVideo();
-  if (!activeVideo?.duration) return;
-  const rect = ev.currentTarget.getBoundingClientRect();
-  const ratio = Math.max(0, Math.min(1, (ev.clientX - rect.left) / rect.width));
-  activeVideo.currentTime = ratio * activeVideo.duration;
-  updateStandardProgress();
-});
+stateEls.standardProgressBar?.parentElement?.addEventListener("pointerdown", beginStandardScrub);
+stateEls.standardPrimaryProgressShell?.addEventListener("pointerdown", beginStandardScrub);
 stateEls.refreshVideoBtn.addEventListener('click', async () => {
   await listVideoDevices();
   if (stateEls.cameraSelect.options.length) await startPreview();
@@ -1205,9 +1372,9 @@ if (navigator.mediaDevices?.addEventListener) {
 })();
 
 
-document.addEventListener('pointermove', updatePipResize);
-document.addEventListener('pointerup', endPipResize);
-document.addEventListener('pointercancel', endPipResize);
+document.addEventListener('pointermove', (ev) => { updatePipResize(ev); updateStandardScrub(ev); });
+document.addEventListener('pointerup', async () => { endPipResize(); await endStandardScrub(); });
+document.addEventListener('pointercancel', async () => { endPipResize(); await endStandardScrub(); });
 stateEls.videoStage?.addEventListener('pointerdown', beginPipResize);
 
 

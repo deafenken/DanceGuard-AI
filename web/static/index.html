@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>民族舞智能评估系统</title>
-  <link rel="stylesheet" href="/static/styles.css?v=20260320s">
+  <link rel="stylesheet" href="/static/styles.css?v=20260321h">
 </head>
 <body>
   <div class="aurora aurora-a"></div>
@@ -124,6 +124,7 @@
               </div>
               <div class="video-overlay-bottom">
                 <div class="video-stage-actions-shell"><div class="video-top-actions video-stage-actions-corner">
+                  <button id="standardAudioBtn" class="stage-action-btn" type="button"><span class="stage-btn-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M5 15v-6"></path><path d="M9 9 13 6v12l-4-3H5z"></path><path d="M16 10a4 4 0 0 1 0 4"></path><path d="M18.5 7.5a7 7 0 0 1 0 9"></path></svg></span><span class="stage-btn-label">&#x4f34;&#x594f;</span></button>
                   <button id="swapVideoBtn" class="stage-action-btn" type="button"><span class="stage-btn-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M8 7h9"></path><path d="m14 4 3 3-3 3"></path><path d="M16 17H7"></path><path d="m10 14-3 3 3 3"></path></svg></span><span class="stage-btn-label">&#x4ea4;&#x6362;&#x753b;&#x9762;</span></button>
                   <button id="fullscreenBtn" class="stage-action-btn" type="button"><span class="stage-btn-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M8 4H4v4"></path><path d="M16 4h4v4"></path><path d="M20 16v4h-4"></path><path d="M4 16v4h4"></path></svg></span><span class="stage-btn-label">&#x5168;&#x5c4f;</span></button>
                 </div></div>
@@ -133,8 +134,17 @@
                 <div class="pip-resize-handle" data-resize-pane="live" aria-hidden="true"></div>
               </div>
               <div id="standardPrimarySurface" class="standard-primary-surface">
-                <video id="standardPrimaryVideo" loop playsinline muted preload="metadata"></video>
-                <div id="standardPrimaryEmpty" class="standard-primary-empty">未配置标准视频</div>
+                <video id="standardPrimaryVideo" loop playsinline muted preload="auto"></video>
+                <div id="standardPrimaryEmpty" class="standard-primary-empty">&#x672a;&#x914d;&#x7f6e;&#x6807;&#x51c6;&#x89c6;&#x9891;</div>
+                <div id="standardPrimaryControls" class="standard-primary-controls">
+                  <div class="standard-timebar standard-timebar-primary">
+                    <span id="standardPrimaryCurrentTime">00:00</span>
+                    <span id="standardPrimaryDuration">00:00</span>
+                  </div>
+                  <div id="standardPrimaryProgressShell" class="standard-progress-shell standard-progress-shell-primary">
+                    <div id="standardPrimaryProgressBar" class="standard-progress-bar"></div>
+                  </div>
+                </div>
               </div>
               <div id="standardPane" class="standard-pane">
                 <div class="standard-pane-head">
@@ -142,11 +152,12 @@
                   <div class="standard-actions">
                     <button id="standardReplayBtn" class="stage-mini-action" type="button" aria-label="replay"><span class="stage-mini-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M4 12a8 8 0 1 0 2.3-5.7"></path><path d="M4 5v5h5"></path></svg></span></button>
                     <button id="standardPlayBtn" class="stage-mini-action" type="button" aria-label="play-pause"><span class="stage-mini-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M8 6v12l9-6z"></path></svg></span></button>
+                    <button id="standardAudioBtnMini" class="stage-mini-action" type="button" aria-label="audio"><span class="stage-mini-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M5 15v-6"></path><path d="M9 9 13 6v12l-4-3H5z"></path><path d="M16 10a4 4 0 0 1 0 4"></path><path d="M18.5 7.5a7 7 0 0 1 0 9"></path></svg></span></button>
                     <button id="standardResetBtn" class="stage-mini-action" type="button" aria-label="reset-size"><span class="stage-mini-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M6 6h5"></path><path d="M6 6v5"></path><path d="M18 18h-5"></path><path d="M18 18v-5"></path><path d="M9 15 6 18"></path><path d="M15 9l3-3"></path></svg></span></button>
                     <button id="swapVideoBtnMini" class="stage-mini-action" type="button" aria-label="swap"><span class="stage-mini-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M8 7h9"></path><path d="m14 4 3 3-3 3"></path><path d="M16 17H7"></path><path d="m10 14-3 3 3 3"></path></svg></span></button>
                   </div>
                 </div>
-                <video id="standardVideo" loop playsinline muted preload="metadata"></video>
+                <video id="standardVideo" loop playsinline muted preload="auto"></video>
                 <div id="standardEmpty" class="standard-empty">&#x672a;&#x914d;&#x7f6e;&#x6807;&#x51c6;&#x89c6;&#x9891;</div>
                 <div class="standard-progress-shell">
                   <div id="standardProgressBar" class="standard-progress-bar"></div>
@@ -411,9 +422,13 @@
     </section>
   </main>
 
-  <script src="/static/app.js?v=20260320s"></script>
+  <script src="/static/app.js?v=20260321h"></script>
 </body>
 </html>
+
+
+
+
 
 
 
