@@ -1,4 +1,4 @@
-﻿import cgi
+import cgi
 import json
 import os
 import time
@@ -236,7 +236,13 @@ class SessionManager:
 
     def stop(self):
         if not self.running:
-            return {"ok": True, "message": "当前没有运行中的会话"}
+            if self.state.get("active"):
+                self.state["active"] = False
+                self.state["rank"] = "IDLE"
+                self.state["feedback"] = "???????"
+                self.state["last_update"] = time.time()
+                return {"ok": True, "message": "???????"}
+            return {"ok": True, "message": "??????????"}
         now = time.time()
         if self.state.get("started_at"):
             self.state["elapsed_sec"] = int(now - float(self.state["started_at"]))
@@ -245,56 +251,68 @@ class SessionManager:
         self.running = False
         if self.thread:
             self.thread.join(timeout=2.0)
-        return {"ok": True, "message": "评分会话已停止"}
-
+        self.thread = None
+        return {"ok": True, "message": "???????"}
     def _loop(self):
         try:
-            assert self.receiver is not None
-            self.receiver.start()
-        except OSError as exc:
-            self.feed.appendleft(self._feed_item("WARN", "VMC 监听失败", str(exc)))
-            self.running = False
-            self.state["active"] = False
-            return
-        while self.running:
-            frame = self.receiver.get_latest_frame() if self.receiver else None
-            now = time.time()
-            if self.state["started_at"]:
-                self.state["elapsed_sec"] = int(now - float(self.state["started_at"]))
-            if frame and frame.timestamp > self.last_frame_ts:
-                self.last_frame_ts = frame.timestamp
-                if self.recorder:
-                    self.recorder.append(frame.joints)
-                result = self.scorer.score_mocap_frame(frame.joints) if self.scorer else None
-                if self.recorder and len(self.recorder.frames) >= 8 and self.scorer:
-                    try:
-                        recent_seq = np.stack(self.recorder.frames[-32:], axis=0).astype(np.float32)
-                        analysis = self.scorer.analyze_sequence(recent_seq)
-                        self.state["weakest_joint"] = str(analysis.get("worst_joint", "--"))
-                        self.state["cfpi"] = analysis.get("cfpi", self.state["cfpi"])
-                    except Exception as exc:
-                        print(f"[WARN] 实时最弱关节分析失败: {exc}")
-                        self.state["weakest_joint"] = "--"
-                if result is not None:
-                    score, feedback = result
-                    rank, title = self._judge(score)
-                    self.state["score"] = score
-                    self.state["feedback"] = feedback
-                    self.state["rank"] = rank
+            try:
+                assert self.receiver is not None
+                self.receiver.start()
+            except OSError as exc:
+                self.feed.appendleft(self._feed_item("WARN", "VMC ????", str(exc)))
+                self.running = False
+                self.state["active"] = False
+                return
+            while self.running:
+                frame = self.receiver.get_latest_frame() if self.receiver else None
+                now = time.time()
+                if self.state["started_at"]:
+                    self.state["elapsed_sec"] = int(now - float(self.state["started_at"]))
+                if frame and frame.timestamp > self.last_frame_ts:
+                    self.last_frame_ts = frame.timestamp
+                    if self.recorder:
+                        self.recorder.append(frame.joints)
+                    result = self.scorer.score_mocap_frame(frame.joints) if self.scorer else None
+                    if self.recorder and len(self.recorder.frames) >= 8 and self.scorer:
+                        try:
+                            recent_seq = np.stack(self.recorder.frames[-32:], axis=0).astype(np.float32)
+                            analysis = self.scorer.analyze_sequence(recent_seq)
+                            self.state["weakest_joint"] = str(analysis.get("worst_joint", "--"))
+                            self.state["cfpi"] = analysis.get("cfpi", self.state["cfpi"])
+                        except Exception as exc:
+                            print(f"[WARN] ??????????: {exc}")
+                            self.state["weakest_joint"] = "--"
+                    if result is not None:
+                        score, feedback = result
+                        rank, title = self._judge(score)
+                        self.state["score"] = score
+                        self.state["feedback"] = feedback
+                        self.state["rank"] = rank
+                        self.state["last_update"] = now
+                        self.score_history.append(score)
+                        self.state["stats"][rank] += 1
+                        self.state["combo"] = self.state["combo"] + 1 if score >= 90 else max(0, self.state["combo"] - 1) if score >= 78 else 0
+                        self.state["best_combo"] = max(self.state["best_combo"], self.state["combo"])
+                        self.feed.appendleft(self._feed_item(rank, title, feedback))
+                elif self.receiver and not self.receiver.metrics().get("connected", False):
+                    self.state["feedback"] = "?????? VMC ???"
+                    self.state["rank"] = "READY"
                     self.state["last_update"] = now
-                    self.score_history.append(score)
-                    self.state["stats"][rank] += 1
-                    self.state["combo"] = self.state["combo"] + 1 if score >= 90 else max(0, self.state["combo"] - 1) if score >= 78 else 0
-                    self.state["best_combo"] = max(self.state["best_combo"], self.state["combo"])
-                    self.feed.appendleft(self._feed_item(rank, title, feedback))
-            time.sleep(0.02)
-        self._finalize()
-        self.receiver = None
-        self.recorder = None
-        self.scorer = None
-        self.thread = None
-        self.running = False
-
+                time.sleep(0.02)
+        except Exception as exc:
+            print(f"[WARN] ????????: {exc}")
+            self.feed.appendleft(self._feed_item("WARN", "??????", str(exc)))
+            self.state["feedback"] = f"???????{exc}"
+            self.state["rank"] = "WARN"
+            self.state["active"] = False
+        finally:
+            if self.receiver or self.recorder:
+                self._finalize()
+            self.receiver = None
+            self.recorder = None
+            self.scorer = None
+            self.thread = None
+            self.running = False
     def _finalize(self):
         if self.receiver:
             self.receiver.stop()
@@ -317,11 +335,16 @@ class SessionManager:
         self.state["elapsed_sec"] = duration_sec
 
     def snapshot(self):
+        if self.state.get("active") and (not self.running) and (self.thread is None or not self.thread.is_alive()):
+            self.state["active"] = False
+            if self.state.get("rank") == "READY":
+                self.state["rank"] = "IDLE"
+            if self.state.get("feedback") == "?????? VMC ???":
+                self.state["feedback"] = "???????"
         metrics = self.receiver.metrics() if self.receiver else {"connected": False, "packet_count": 0, "frame_count": 0, "bone_count": 0, "fps": 0.0, "last_packet_age": -1.0, "uptime_sec": 0.0}
         self.state["vmc_metrics"] = metrics
         self.state["last_import_path"] = self.store.get_state().get("last_import_path", "")
         return {"state": dict(self.state), "feed": list(self.feed), "record": dict(self.record_info)}
-
     def history(self, dance_type: str = "", grade: str = "", keyword: str = ""):
         rows = self.store.list_history(self._scope_username(), dance_type=dance_type, grade=grade, keyword=keyword)
         for row in rows:

@@ -1,4 +1,4 @@
-﻿const els = {
+const els = {
   backendBaseUrl: document.getElementById('backendBaseUrl'),
   saveBackendBtn: document.getElementById('saveBackendBtn'),
   danceType: document.getElementById('danceType'),
