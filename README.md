@@ -10,7 +10,7 @@ DanceGuard-AI 是一个面向新疆民族舞非遗传承场景的智能评估系
 - 赛题：**赛题1：基于昇思 MindSpore 打造 AI 创新应用**
 
 ## 界面示意
-![DanceGuard-AI 界面示意](docs/dashboard-preview.svg)
+![DanceGuard-AI 界面示意](docs/ui.png)
 
 上图为当前 Web 工作台的界面示意，真实运行时包含：
 - 左侧业务导航
